@@ -6,14 +6,12 @@
 
 </div>
 
----
 
 ### O que é?
 
 Um sistema intuitivo alimentado por IA (DeepSeek) que automatiza o processo logístico dos pacientes
 - trabalho escolar
 
----
 
 #### License 
 Esse projeto é licenciado pela [MIT LICENSE](LICENSE).
