@@ -26,13 +26,13 @@
     <main id="kiosk-main" class="flex-1 relative flex flex-col justify-center p-4 sm:p-8 max-w-6xl mx-auto w-full min-h-0 overflow-hidden">
 
         <div id="wizard-stepper" class="wizard-stepper hidden" aria-label="Etapas do atendimento">
-            <div id="step-node-1" class="stepper-stop stepper-stop-1"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step1Label">Identificação</span></div>
+            <div id="step-node-1" class="stepper-stop stepper-stop-1"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step4Label">Prioridade</span></div>
             <div id="step-connector-1" class="stepper-connector stepper-connector-1"></div>
-            <div id="step-node-2" class="stepper-stop stepper-stop-2"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step2Label">Serviço</span></div>
+            <div id="step-node-2" class="stepper-stop stepper-stop-2"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step1Label">Identificação</span></div>
             <div id="step-connector-2" class="stepper-connector stepper-connector-2"></div>
-            <div id="step-node-3" class="stepper-stop stepper-stop-3"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step3Label">Confirmação</span></div>
+            <div id="step-node-3" class="stepper-stop stepper-stop-3"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step2Label">Serviço</span></div>
             <div id="step-connector-3" class="stepper-connector stepper-connector-3"></div>
-            <div id="step-node-4" class="stepper-stop stepper-stop-4"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step4Label">Prioridade</span></div>
+            <div id="step-node-4" class="stepper-stop stepper-stop-4"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step3Label">Confirmação</span></div>
         </div>
 
         <section id="screen-ai-loading" class="hidden ai-loading-screen" role="status" aria-live="polite" aria-atomic="true">
@@ -247,6 +247,18 @@
             </div>
         </div>
 
+        <!-- Aviso: sem resposta de prioridade -> atendente vai até o local -->
+        <div id="modal-priority-timeout" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4" role="alertdialog" aria-live="assertive" aria-labelledby="priority-timeout-title">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border-2 border-amber-300 text-center hc-card">
+                <div class="mx-auto p-4 bg-amber-100 text-amber-700 rounded-full w-fit">
+                    <i data-lucide="bell-ring" class="w-10 h-10"></i>
+                </div>
+                <h3 id="priority-timeout-title" class="text-2xl font-black text-slate-800 hc-text" data-i18n="priorityTimeoutTitle">Um atendente está a caminho</h3>
+                <p class="text-slate-600 font-medium hc-text" data-i18n="priorityTimeoutDesc">Não recebemos sua resposta. Aguarde neste local: alguém da equipe virá até você.</p>
+                <button type="button" onclick="closePriorityTimeoutModal()" class="w-full bg-health-600 hover:bg-health-700 text-white font-black py-4 rounded-2xl text-lg shadow-lg transition-all active:scale-95 hc-btn-primary" data-i18n="priorityTimeoutBtn">Escolher prioridade agora</button>
+            </div>
+        </div>
+
         <!-- ========================================== -->
         <!-- ETAPA 3: CONFIRMAÇÃO DO PACIENTE E ESPECIALIDADE -->
         <!-- ========================================== -->
@@ -299,6 +311,11 @@
                 </h2>
                 <p class="text-slate-500 text-sm max-w-xl mx-auto hc-text" data-i18n="step4Sub">
                     Selecione uma das opções prioritárias garantidas pela legislação vigente:
+                </p>
+                <p id="priority-timer-note" class="text-sm font-bold text-amber-700 hc-text" role="timer">
+                    <span data-i18n="priorityTimerNote">Responda em</span>
+                    <strong id="priority-countdown" class="text-lg">15</strong>s
+                    <span data-i18n="priorityTimerNoteEnd">ou um atendente irá até você.</span>
                 </p>
             </div>
 
