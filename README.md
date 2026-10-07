@@ -9,9 +9,9 @@
 
 ### O que é?
 
-Um sistema intuitivo alimentado por IA (DeepSeek) que automatiza o processo logístico dos pacientes
-- trabalho escolar
+Um sistema intuitivo alimentado por IA (DeepSeek) que tem como objetivo servir como "recepcionista" de hospitais, guiando os pacientes de acordo com suas necessidades.
+- trabalho escolar, *Não* é um trabalho sério.
 
 
-#### License 
+### License 
 Esse projeto é licenciado pela [MIT LICENSE](LICENSE).
