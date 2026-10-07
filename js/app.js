@@ -61,7 +61,18 @@ const state = {
   // Temporizadores
   finishTimer: null,
   finishCountdownSeconds: 15,
+  priorityTimer: null,
+  priorityCountdownSeconds: 15,
 };
+
+// Tempo (em segundos) para o paciente responder a pergunta de prioridade.
+// Se acabar, a equipe é avisada e o paciente vê que um atendente vai até o local.
+const PRIORITY_TIMEOUT_SECONDS = 15;
+
+// Ordem das etapas NA TELA -> id da seção no HTML (step-N).
+// 1: Prioridade (step-4) · 2: CPF (step-1) · 3: Serviço (step-2) · 4: Confirmação (step-3)
+// A etapa 5 é a senha. Assim não foi preciso renumerar o HTML nem o CSS.
+const STEP_SECTIONS = { 1: 4, 2: 1, 3: 2, 4: 3, 5: 5 };
 
 // Dicionário de traduções
 const i18nDict = {
@@ -139,6 +150,12 @@ const i18nDict = {
     prioTEADesc: "Direito garantido por lei prioritária.",
     prioOther: "Outras Prioridades",
     prioOtherDesc: "Doadores de sangue, obesidade severa, etc.",
+    priorityTimerNote: "Responda em",
+    priorityTimerNoteEnd: "ou um atendente irá até você.",
+    priorityTimeoutTitle: "Um atendente está a caminho",
+    priorityTimeoutDesc:
+      "Não recebemos sua resposta. Aguarde neste local: alguém da equipe virá até você.",
+    priorityTimeoutBtn: "Escolher prioridade agora",
     ticketSuccess: "Sua Senha foi Gerada com Sucesso!",
     ticketSub:
       "Retire o comprovante impresso na abertura do totem ou acompanhe no celular pelo QR Code:",
@@ -179,10 +196,10 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 async function startWizard() {
-  const completed = await showAiLoading(1, "loadingStart");
+  const completed = await showAiLoading(1, "loadingPriority");
   if (!completed) return;
   playAudioTone(600, 0.1);
-  speakText(i18nDict.pt.step1Title);
+  speakText(i18nDict.pt.step4Title);
 }
 
 async function showAiLoading(nextStep, descriptionKey, onComplete = () => {}) {
@@ -217,6 +234,8 @@ async function showAiLoading(nextStep, descriptionKey, onComplete = () => {}) {
 
 function goToStep(stepNum) {
   state.loadingToken += 1;
+  cancelPriorityTimer();
+  closePriorityTimeoutModal();
   state.currentStep = stepNum;
   document.getElementById("kiosk-main").scrollTop = 0;
   document.getElementById("wizard-stepper").classList.remove("has-content-underlay");
@@ -247,9 +266,12 @@ function goToStep(stepNum) {
     stepperBar.classList.add("hidden");
     startFinishCountdown();
   } else {
-    document.getElementById(`step-${stepNum}`).classList.remove("hidden");
+    document
+      .getElementById(`step-${STEP_SECTIONS[stepNum]}`)
+      .classList.remove("hidden");
     stepperBar.classList.remove("hidden");
     updateStepperProgress(stepNum);
+    if (stepNum === 1) startPriorityTimer();
   }
 
   lucide.createIcons();
@@ -409,7 +431,7 @@ async function confirmPatientIdentification() {
   }
 
   const cpfDigitado = state.rawCpf;
-  const completed = await showAiLoading(2, "loadingCpf", () => {
+  const completed = await showAiLoading(3, "loadingCpf", () => {
     state.patientData.name = gerarNomeAleatorio();
     state.patientData.cpf = formatCpf(cpfDigitado);
     document.getElementById("confirm-patient-name").innerText = state.patientData.name;
@@ -432,14 +454,14 @@ function closeUrgencyTriageModal() {
 async function selectUrgencyLevel(level) {
   state.urgencyLevel = level;
   closeUrgencyTriageModal();
-  const completed = await showAiLoading(3, "loadingService");
+  const completed = await showAiLoading(4, "loadingService");
   if (completed) speakText(i18nDict.pt.step3Title);
 }
 
 async function selectService(type) {
   state.serviceType = type;
   playAudioTone(700, 0.1);
-  const completed = await showAiLoading(3, "loadingService");
+  const completed = await showAiLoading(4, "loadingService");
   if (completed) speakText(i18nDict.pt.step3Title);
 }
 
@@ -467,14 +489,73 @@ function renderSpecialties() {
 async function selectSpecialty(spec) {
   state.selectedSpecialty = spec;
   playAudioTone(700, 0.1);
-  const completed = await showAiLoading(4, "loadingPriority");
-  if (completed) speakText(i18nDict.pt.step4Title);
+  const completed = await showAiLoading(5, "loadingTicket", generateFinalTicket);
+  if (completed) speakText(i18nDict.pt.ticketSuccess);
 }
 
 async function selectPriority(priority) {
+  cancelPriorityTimer();
+  closePriorityTimeoutModal();
   state.priorityLevel = priority;
-  const completed = await showAiLoading(5, "loadingTicket", generateFinalTicket);
-  if (completed) speakText(i18nDict.pt.ticketSuccess);
+  playAudioTone(700, 0.1);
+  const completed = await showAiLoading(2, "loadingStart");
+  if (completed) speakText(i18nDict.pt.step1Title);
+}
+
+// ---------- Timer da pergunta de prioridade ----------
+function startPriorityTimer() {
+  cancelPriorityTimer();
+  state.priorityCountdownSeconds = PRIORITY_TIMEOUT_SECONDS;
+  updatePriorityCountdown();
+
+  state.priorityTimer = setInterval(() => {
+    state.priorityCountdownSeconds--;
+    updatePriorityCountdown();
+
+    if (state.priorityCountdownSeconds <= 0) {
+      cancelPriorityTimer();
+      onPriorityTimeout();
+    }
+  }, 1000);
+}
+
+function cancelPriorityTimer() {
+  clearInterval(state.priorityTimer);
+  state.priorityTimer = null;
+}
+
+function updatePriorityCountdown() {
+  const el = document.getElementById("priority-countdown");
+  if (el) el.innerText = Math.max(state.priorityCountdownSeconds, 0);
+}
+
+function onPriorityTimeout() {
+  // Não escolhemos prioridade pelo paciente: fica como "não confirmada".
+  state.priorityLevel = "NAO_CONFIRMADA";
+  notifyStaff({
+    motivo: "SEM_RESPOSTA_PRIORIDADE",
+    local: "Totem de autoatendimento",
+    horario: new Date().toISOString(),
+  });
+  document.getElementById("modal-priority-timeout").classList.remove("hidden");
+  playAudioTone(500, 0.4);
+  speakText(
+    `${i18nDict.pt.priorityTimeoutTitle}. ${i18nDict.pt.priorityTimeoutDesc}`,
+  );
+  lucide.createIcons();
+}
+
+// Ponto de integração: troque pelo envio real (fetch/WebSocket) para o painel da recepção.
+function notifyStaff(payload) {
+  console.info("[Totem] Atendente solicitado:", payload);
+  window.dispatchEvent(
+    new CustomEvent("totem:atendente-solicitado", { detail: payload }),
+  );
+}
+
+function closePriorityTimeoutModal() {
+  const modal = document.getElementById("modal-priority-timeout");
+  if (modal) modal.classList.add("hidden");
 }
 
 function generateFinalTicket() {
@@ -538,6 +619,8 @@ function startFinishCountdown() {
 
 function resetToWelcomeScreen() {
   clearInterval(state.finishTimer);
+  cancelPriorityTimer();
+  closePriorityTimeoutModal();
   state.rawCpf = "";
   state.patientData = { name: "", cpf: "" };
   state.currentStep = 0;
