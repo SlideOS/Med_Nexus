@@ -278,6 +278,7 @@ body.high-contrast .utility-control-help {
 #step-1 h2,
 #step-2 h2,
 #step-3 h2,
+#step-6 h2,
 #step-4 h2 {
     font-size: 1.625rem;
     line-height: 1.2;
@@ -285,27 +286,32 @@ body.high-contrast .utility-control-help {
 #step-1 .text-center > p,
 #step-2 .text-center > p,
 #step-3 .text-center > p,
+#step-6 .text-center > p,
 #step-4 .text-center > p {
     font-size: 1rem;
     line-height: 1.5;
 }
 #step-2 > div:nth-child(2) > button:not(:hover),
+#step-6 > div:nth-child(2) > button:not(:hover),
 #step-4 > div:nth-child(2) > button:not(:hover),
 #step-3 #specialties-grid > button:not(:hover),
 #modal-urgency-triage .space-y-3 > button:not(:hover) {
     border-color: #cbd5e1;
 }
 #step-2 > div:nth-child(2) > button,
+#step-6 > div:nth-child(2) > button,
 #step-4 > div:nth-child(2) > button,
 #modal-urgency-triage .space-y-3 > button {
     padding: 1.375rem;
     box-shadow: 0 5px 14px rgba(15, 23, 42, 0.07);
 }
 #step-2 > div:nth-child(2) > button h3,
+#step-6 > div:nth-child(2) > button h3,
 #step-4 > div:nth-child(2) > button h3 {
     font-size: 1.125rem;
 }
 #step-2 > div:nth-child(2) > button p,
+#step-6 > div:nth-child(2) > button p,
 #step-4 > div:nth-child(2) > button p,
 #modal-urgency-triage .space-y-3 > button p {
     font-size: 0.8125rem;
@@ -322,6 +328,7 @@ body.high-contrast .utility-control-help {
     #step-1 h2,
     #step-2 h2,
     #step-3 h2,
+    #step-6 h2,
     #step-4 h2 {
         font-size: 2rem;
     }
@@ -330,10 +337,12 @@ body.high-contrast .utility-control-help {
     #step-1 h2,
     #step-2 h2,
     #step-3 h2,
+    #step-6 h2,
     #step-4 h2 {
         font-size: 1.5rem;
     }
     #step-2 > div:nth-child(2) > button,
+    #step-6 > div:nth-child(2) > button,
     #step-4 > div:nth-child(2) > button,
     #modal-urgency-triage .space-y-3 > button {
         padding: 1.125rem;
@@ -480,6 +489,7 @@ body.high-contrast .ai-loading-track span {
 #step-1:not(.hidden),
 #step-2:not(.hidden),
 #step-3:not(.hidden),
+#step-6:not(.hidden),
 #step-4:not(.hidden),
 #step-5:not(.hidden) {
     animation: softScreenEntry 480ms cubic-bezier(0.22, 0.8, 0.28, 1.12) both;
@@ -491,33 +501,39 @@ body.high-contrast .ai-loading-track span {
     animation: softOptionEntry 560ms 80ms cubic-bezier(0.22, 0.8, 0.28, 1.12) both;
 }
 #step-2 > div:nth-child(2) > button,
+#step-6 > div:nth-child(2) > button,
 #step-4 > div:nth-child(2) > button,
 #step-3 #specialties-grid > button,
 #modal-urgency-triage .space-y-3 > button {
     animation: softOptionEntry 440ms cubic-bezier(0.22, 0.8, 0.28, 1.12) both;
 }
 #step-2 > div:nth-child(2) > button:nth-child(2),
+#step-6 > div:nth-child(2) > button:nth-child(2),
 #step-4 > div:nth-child(2) > button:nth-child(2),
 #step-3 #specialties-grid > button:nth-child(2),
 #modal-urgency-triage .space-y-3 > button:nth-child(2) {
     animation-delay: 45ms;
 }
 #step-2 > div:nth-child(2) > button:nth-child(3),
+#step-6 > div:nth-child(2) > button:nth-child(3),
 #step-4 > div:nth-child(2) > button:nth-child(3),
 #step-3 #specialties-grid > button:nth-child(3),
 #modal-urgency-triage .space-y-3 > button:nth-child(3) {
     animation-delay: 90ms;
 }
 #step-2 > div:nth-child(2) > button:nth-child(4),
+#step-6 > div:nth-child(2) > button:nth-child(4),
 #step-4 > div:nth-child(2) > button:nth-child(4),
 #step-3 #specialties-grid > button:nth-child(4) {
     animation-delay: 135ms;
 }
 #step-3 #specialties-grid > button:nth-child(5),
+#step-6 > div:nth-child(2) > button:nth-child(5),
 #step-4 > div:nth-child(2) > button:nth-child(5) {
     animation-delay: 180ms;
 }
 #step-3 #specialties-grid > button:nth-child(6),
+#step-6 > div:nth-child(2) > button:nth-child(6),
 #step-4 > div:nth-child(2) > button:nth-child(6) {
     animation-delay: 225ms;
 }
@@ -526,6 +542,7 @@ body.high-contrast .ai-loading-track span {
 }
 #step-2 > div:nth-child(2) > button,
 #step-3 #specialties-grid > button,
+#step-6 > div:nth-child(2) > button,
 #step-4 > div:nth-child(2) > button,
 .calculator-keypad .grid > button,
 .calculator-confirm-button {
@@ -534,6 +551,7 @@ body.high-contrast .ai-loading-track span {
 @media (hover: hover) {
     #step-2 > div:nth-child(2) > button:hover,
     #step-3 #specialties-grid > button:hover,
+    #step-6 > div:nth-child(2) > button:hover,
     #step-4 > div:nth-child(2) > button:hover,
     .calculator-keypad .grid > button:hover,
     .calculator-confirm-button:hover {
@@ -542,6 +560,7 @@ body.high-contrast .ai-loading-track span {
 }
 #step-2 > div:nth-child(2) > button:active,
 #step-3 #specialties-grid > button:active,
+#step-6 > div:nth-child(2) > button:active,
 #step-4 > div:nth-child(2) > button:active,
 .calculator-keypad .grid > button:active,
 .calculator-confirm-button:active {
@@ -558,11 +577,13 @@ body.high-contrast .ai-loading-track span {
     #step-1:not(.hidden),
     #step-2:not(.hidden),
     #step-3:not(.hidden),
+    #step-6:not(.hidden),
     #step-4:not(.hidden),
     #step-5:not(.hidden),
     #screen-welcome > div,
     #screen-welcome > button,
     #step-2 > div:nth-child(2) > button,
+    #step-6 > div:nth-child(2) > button,
     #step-4 > div:nth-child(2) > button,
     #step-3 #specialties-grid > button,
     #modal-urgency-triage .space-y-3 > button,
@@ -575,6 +596,7 @@ body.high-contrast .ai-loading-track span {
     }
     #step-2 > div:nth-child(2) > button,
     #step-3 #specialties-grid > button,
+    #step-6 > div:nth-child(2) > button,
     #step-4 > div:nth-child(2) > button,
     .calculator-keypad .grid > button,
     .calculator-confirm-button {

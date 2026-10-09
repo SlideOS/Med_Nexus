@@ -50,8 +50,8 @@ const state = {
     cpf: "",
   },
   selectedSpecialty: "Clínica Geral",
-  priorityLevel: "CONVENCIONAL",
-  urgencyLevel: "MILD",
+  legalPriority: "CONVENCIONAL", // prioridade por lei (só no caminho leve)
+  urgencyLevel: "", // gravidade: "MILD" (leve) | "MODERATE" (intermediário) | "URGENT" (grave)
   ticketCode: "",
   loadingToken: 0,
 
@@ -61,6 +61,35 @@ const state = {
   // Temporizadores
   finishTimer: null,
   finishCountdownSeconds: 15,
+  priorityTimer: null,
+  priorityCountdownSeconds: 30,
+  attendantScreenTimer: null,
+};
+
+// Tempo (em segundos) para o paciente responder a pergunta de gravidade.
+// Se acabar, a equipe é avisada e o paciente vê que um atendente vai até o local.
+const PRIORITY_TIMEOUT_SECONDS = 30;
+// Quanto tempo o aviso "atendente a caminho" fica na tela antes do totem voltar ao início.
+const ATTENDANT_SCREEN_SECONDS = 60;
+
+// Ordem das etapas NA TELA -> id da seção no HTML (step-N).
+// 1: Triagem/nível de dor (step-4) · 2: CPF (step-1) · 3: Prioridade por lei (step-6)
+// 4: Serviço/motivo (step-2) · 5: Confirmação/especialidade (step-3) · 6: Ficha (step-5)
+// Assim não foi preciso renumerar os ids do HTML nem do CSS.
+const STEP_SECTIONS = { 1: 4, 2: 1, 3: 6, 4: 2, 5: 3, 6: 5 };
+const TICKET_STEP = 6;
+
+// Nome do nível do meio (dor moderada, mas constante) que aparece na ficha.
+// Pode trocar por outro nome que fique antes de "urgência" (ex.: "Semiurgente").
+const MODERATE_LEVEL_NAME = "Prioritário";
+
+// Nomes das prioridades por lei, usados na ficha
+const LEGAL_PRIORITY_LABELS = {
+  IDOSO: "Idoso",
+  GESTANTE: "Gestante / Lactante",
+  PCD: "Pessoa com Deficiência",
+  AUTISMO: "TEA",
+  OUTROS: "Outras prioridades",
 };
 
 // Dicionário de traduções
@@ -107,25 +136,26 @@ const i18nDict = {
     serv4Title: "Informações e Setores",
     serv4Desc:
       "Visitas a pacientes internados, dúvidas gerais e guichê de autorizações.",
-    triageHeader: "Triagem Primária de Sintomas",
-    triageSub: "Selecione o nível que melhor descreve seu estado atual:",
-    triageMild: "Sintomas Leves ou Sintomáticos Simples",
+    triageMild: "Dor leve ou desconforto comum",
     triageMildDesc:
-      "Gripe leve, dor muscular baixa, curativos ou renovação de receita.",
-    triageMod: "Sintomas Moderados",
+      "Dor de cabeça leve, gripe, dor muscular, curativos ou renovação de receita.",
+    triageMod: "Dor moderada, mas constante",
     triageModDesc:
-      "Febre alta, enxaqueca forte, mal-estar generalizado, pequenas fraturas.",
-    triageUrg: "Urgência / Dor Intensa",
+      "Não é tão forte, mas não passa: febre alta, enxaqueca, mal-estar persistente, pequenas fraturas.",
+    triageUrg: "Dor extrema ou muito forte",
     triageUrgDesc:
-      "Dor no peito, falta de ar intensa, sangramento ativo, queimaduras severas.",
+      "Dor insuportável, dor no peito, falta de ar intensa, sangramento ativo ou queimaduras severas. Um atendente virá até você.",
     step3Title: "Confirme seus dados e escolha a Especialidade",
     step3Sub: "Localizamos os seguintes dados em nosso sistema:",
     foundPatient: "Paciente de demonstração",
     cpfSimulationError: "Não foi possível preparar a demonstração. Tente novamente.",
     btnNotYou: "Não é você? Alterar",
     selectSpecLabel: "Selecione o Setor / Especialidade Desejada:",
-    step4Title: "Você possui direito a Atendimento Prioritário?",
-    step4Sub:
+    step4Title: "Qual é o nível da sua dor agora?",
+    step4Sub: "Selecione a opção que melhor descreve como você está:",
+    stepTriageLabel: "Triagem",
+    legalTitle: "Você possui direito a Atendimento Prioritário?",
+    legalSub:
       "Selecione uma das opções prioritárias garantidas pela legislação vigente:",
     prioGeneral: "Atendimento Geral / Convencional",
     prioGeneralDesc: "Não me enquadro em categorias de prioridade legal.",
@@ -139,6 +169,13 @@ const i18nDict = {
     prioTEADesc: "Direito garantido por lei prioritária.",
     prioOther: "Outras Prioridades",
     prioOtherDesc: "Doadores de sangue, obesidade severa, etc.",
+    priorityTimerNote: "Responda em",
+    priorityTimerNoteEnd: "ou um atendente irá até você.",
+    attendantTitle: "Um atendente está a caminho",
+    attendantDescTimeout:
+      "Não recebemos sua resposta. Aguarde neste local: um atendente virá até você.",
+    attendantDescSevere:
+      "Seu caso foi identificado como grave. Fique neste local: um atendente virá até você agora.",
     ticketSuccess: "Sua Senha foi Gerada com Sucesso!",
     ticketSub:
       "Retire o comprovante impresso na abertura do totem ou acompanhe no celular pelo QR Code:",
@@ -179,10 +216,10 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 async function startWizard() {
-  const completed = await showAiLoading(1, "loadingStart");
+  const completed = await showAiLoading(1, "loadingPriority");
   if (!completed) return;
   playAudioTone(600, 0.1);
-  speakText(i18nDict.pt.step1Title);
+  speakText(i18nDict.pt.step4Title);
 }
 
 async function showAiLoading(nextStep, descriptionKey, onComplete = () => {}) {
@@ -194,7 +231,7 @@ async function showAiLoading(nextStep, descriptionKey, onComplete = () => {}) {
   document.getElementById("wizard-stepper").classList.remove("has-content-underlay");
   document.getElementById("welcome-brandmark").classList.add("hidden");
   document.getElementById("screen-welcome").classList.add("hidden");
-  for (let step = 1; step <= 5; step++) {
+  for (let step = 1; step <= 6; step++) {
     document.getElementById(`step-${step}`)?.classList.add("hidden");
   }
   main.classList.remove("wizard-active");
@@ -217,6 +254,8 @@ async function showAiLoading(nextStep, descriptionKey, onComplete = () => {}) {
 
 function goToStep(stepNum) {
   state.loadingToken += 1;
+  cancelPriorityTimer();
+  closePriorityTimeoutModal();
   state.currentStep = stepNum;
   document.getElementById("kiosk-main").scrollTop = 0;
   document.getElementById("wizard-stepper").classList.remove("has-content-underlay");
@@ -226,12 +265,12 @@ function goToStep(stepNum) {
   document.getElementById("screen-ai-loading").classList.add("hidden");
   document
     .getElementById("kiosk-main")
-    .classList.toggle("wizard-active", stepNum >= 1 && stepNum <= 4);
+    .classList.toggle("wizard-active", stepNum >= 1 && stepNum < TICKET_STEP);
   document.getElementById("kiosk-main").classList.remove("wizard-loading");
 
   // Oculta todas as telas das etapas
   document.getElementById("screen-welcome").classList.add("hidden");
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 6; i++) {
     const el = document.getElementById(`step-${i}`);
     if (el) el.classList.add("hidden");
   }
@@ -242,30 +281,33 @@ function goToStep(stepNum) {
     document.getElementById("screen-welcome").classList.remove("hidden");
     stepperBar.classList.add("hidden");
     updateStepperProgress(1);
-  } else if (stepNum === 5) {
+  } else if (stepNum === TICKET_STEP) {
     document.getElementById("step-5").classList.remove("hidden");
     stepperBar.classList.add("hidden");
     startFinishCountdown();
   } else {
-    document.getElementById(`step-${stepNum}`).classList.remove("hidden");
+    document
+      .getElementById(`step-${STEP_SECTIONS[stepNum]}`)
+      .classList.remove("hidden");
     stepperBar.classList.remove("hidden");
     updateStepperProgress(stepNum);
+    if (stepNum === 1) startPriorityTimer();
   }
 
   lucide.createIcons();
   atualizarBlurEtapas();
 }
 
+// Só é possível voltar depois que o CPF foi informado (etapa 3 em diante, até antes da ficha).
+// Triagem (1) e CPF (2) não têm "Voltar".
 function goToPreviousStep() {
-  if (state.currentStep > 1) {
+  if (state.currentStep >= 3 && state.currentStep < TICKET_STEP) {
     goToStep(state.currentStep - 1);
-  } else {
-    resetToWelcomeScreen();
   }
 }
 
 function updateStepperProgress(step) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const node = document.getElementById(`step-node-${i}`);
     if (!node) continue;
 
@@ -276,7 +318,7 @@ function updateStepperProgress(step) {
     else node.removeAttribute("aria-current");
   }
 
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 4; i++) {
     const connector = document.getElementById(`step-connector-${i}`);
     connector.classList.toggle("is-complete", step > i);
   }
@@ -409,37 +451,28 @@ async function confirmPatientIdentification() {
   }
 
   const cpfDigitado = state.rawCpf;
-  const completed = await showAiLoading(2, "loadingCpf", () => {
+  // Intermediário: após identificar pelo CPF já recebe a ficha (pula serviço e confirmação)
+  const isModerate = state.urgencyLevel === "MODERATE";
+  const completed = await showAiLoading(
+    isModerate ? TICKET_STEP : 3,
+    isModerate ? "loadingTicket" : "loadingCpf",
+    () => {
     state.patientData.name = gerarNomeAleatorio();
     state.patientData.cpf = formatCpf(cpfDigitado);
     document.getElementById("confirm-patient-name").innerText = state.patientData.name;
     document.getElementById("confirm-patient-cpf").innerText = state.patientData.cpf;
     setCpfLookupStatus("");
+    if (isModerate) generateFinalTicket();
   });
-  if (completed) speakText(i18nDict.pt.step2Title);
-}
-
-function openUrgencyTriageModal() {
-  state.serviceType = "URGENCIA";
-  document.getElementById("modal-urgency-triage").classList.remove("hidden");
-  playAudioTone(700, 0.1);
-}
-
-function closeUrgencyTriageModal() {
-  document.getElementById("modal-urgency-triage").classList.add("hidden");
-}
-
-async function selectUrgencyLevel(level) {
-  state.urgencyLevel = level;
-  closeUrgencyTriageModal();
-  const completed = await showAiLoading(3, "loadingService");
-  if (completed) speakText(i18nDict.pt.step3Title);
+  if (completed) {
+    speakText(isModerate ? i18nDict.pt.ticketSuccess : i18nDict.pt.legalTitle);
+  }
 }
 
 async function selectService(type) {
   state.serviceType = type;
   playAudioTone(700, 0.1);
-  const completed = await showAiLoading(3, "loadingService");
+  const completed = await showAiLoading(5, "loadingService");
   if (completed) speakText(i18nDict.pt.step3Title);
 }
 
@@ -467,23 +500,127 @@ function renderSpecialties() {
 async function selectSpecialty(spec) {
   state.selectedSpecialty = spec;
   playAudioTone(700, 0.1);
-  const completed = await showAiLoading(4, "loadingPriority");
-  if (completed) speakText(i18nDict.pt.step4Title);
-}
-
-async function selectPriority(priority) {
-  state.priorityLevel = priority;
-  const completed = await showAiLoading(5, "loadingTicket", generateFinalTicket);
+  const completed = await showAiLoading(
+    TICKET_STEP,
+    "loadingTicket",
+    generateFinalTicket,
+  );
   if (completed) speakText(i18nDict.pt.ticketSuccess);
 }
 
-function generateFinalTicket() {
-  let prefix = "N";
-  if (state.serviceType === "URGENCIA") {
-    prefix = state.urgencyLevel === "URGENT" ? "U" : "P";
-  } else if (state.priorityLevel !== "CONVENCIONAL") {
-    prefix = "P";
+async function selectLegalPriority(priority) {
+  state.legalPriority = priority;
+  playAudioTone(700, 0.1);
+  const completed = await showAiLoading(4, "loadingService");
+  if (completed) speakText(i18nDict.pt.step2Title);
+}
+
+async function selectPriority(level) {
+  // level: "MILD" | "MODERATE" | "URGENT"
+  cancelPriorityTimer();
+  state.urgencyLevel = level;
+  playAudioTone(700, 0.1);
+
+  // Grave: não segue o fluxo, o atendente vem direto
+  if (level === "URGENT") {
+    callAttendant("CASO_GRAVE");
+    return;
   }
+
+  // Intermediário: só identifica pelo CPF e recebe a ficha
+  if (level === "MODERATE") {
+    state.serviceType = "URGENCIA";
+    state.selectedSpecialty = "Pronto Atendimento";
+  }
+
+  // Leve: segue por todas as perguntas
+  const completed = await showAiLoading(2, "loadingStart");
+  if (completed) speakText(i18nDict.pt.step1Title);
+}
+
+// ---------- Timer da pergunta de prioridade ----------
+function startPriorityTimer() {
+  cancelPriorityTimer();
+  state.priorityCountdownSeconds = PRIORITY_TIMEOUT_SECONDS;
+  updatePriorityCountdown();
+
+  state.priorityTimer = setInterval(() => {
+    state.priorityCountdownSeconds--;
+    updatePriorityCountdown();
+
+    if (state.priorityCountdownSeconds <= 0) {
+      cancelPriorityTimer();
+      onPriorityTimeout();
+    }
+  }, 1000);
+}
+
+function cancelPriorityTimer() {
+  clearInterval(state.priorityTimer);
+  state.priorityTimer = null;
+}
+
+function updatePriorityCountdown() {
+  const el = document.getElementById("priority-countdown");
+  if (el) el.innerText = Math.max(state.priorityCountdownSeconds, 0);
+}
+
+function onPriorityTimeout() {
+  // Sem resposta em 30s: gravidade fica indefinida e o atendente vai até o local
+  state.urgencyLevel = "";
+  callAttendant("SEM_RESPOSTA");
+}
+
+function callAttendant(reason) {
+  cancelPriorityTimer();
+  const isSevere = reason === "CASO_GRAVE";
+
+  notifyStaff({
+    motivo: reason, // "CASO_GRAVE" | "SEM_RESPOSTA"
+    gravidade: state.urgencyLevel || "NAO_INFORMADA",
+    local: "Totem de autoatendimento",
+    horario: new Date().toISOString(),
+  });
+
+  const description = isSevere
+    ? i18nDict.pt.attendantDescSevere
+    : i18nDict.pt.attendantDescTimeout;
+  document.getElementById("priority-timeout-title").innerText =
+    i18nDict.pt.attendantTitle;
+  document.getElementById("priority-timeout-desc").innerText = description;
+  document.getElementById("modal-priority-timeout").classList.remove("hidden");
+
+  playAudioTone(isSevere ? 900 : 500, 0.4);
+  speakText(`${i18nDict.pt.attendantTitle}. ${description}`);
+  lucide.createIcons();
+
+  // O totem volta ao início sozinho depois de um tempo
+  clearTimeout(state.attendantScreenTimer);
+  state.attendantScreenTimer = setTimeout(
+    resetToWelcomeScreen,
+    ATTENDANT_SCREEN_SECONDS * 1000,
+  );
+}
+
+// Ponto de integração: troque pelo envio real (fetch/WebSocket) para o painel da recepção.
+function notifyStaff(payload) {
+  console.info("[Totem] Atendente solicitado:", payload);
+  window.dispatchEvent(
+    new CustomEvent("totem:atendente-solicitado", { detail: payload }),
+  );
+}
+
+function closePriorityTimeoutModal() {
+  clearTimeout(state.attendantScreenTimer);
+  const modal = document.getElementById("modal-priority-timeout");
+  if (modal) modal.classList.add("hidden");
+}
+
+function generateFinalTicket() {
+  // N = convencional · P = prioritária (dor moderada e constante, ou prioridade por lei)
+  const hasLegalPriority = state.legalPriority !== "CONVENCIONAL";
+  const isPriority = state.urgencyLevel === "MODERATE" || hasLegalPriority;
+  const prefix = isPriority ? "P" : "N";
 
   const randomNum = Math.floor(Math.random() * 80) + 10;
   state.ticketCode = `${prefix}-0${randomNum}`;
@@ -495,8 +632,10 @@ function generateFinalTicket() {
     state.selectedSpecialty;
 
   const badgeEl = document.getElementById("ticket-priority-badge");
-  if (state.priorityLevel !== "CONVENCIONAL" || prefix === "U") {
-    badgeEl.innerText = `ATENDIMENTO PRIORITÁRIO (${state.priorityLevel})`;
+  if (isPriority) {
+    badgeEl.innerText = hasLegalPriority
+      ? `ATENDIMENTO PRIORITÁRIO (${(LEGAL_PRIORITY_LABELS[state.legalPriority] || state.legalPriority).toUpperCase()})`
+      : `ATENDIMENTO ${MODERATE_LEVEL_NAME.toUpperCase()}`;
     badgeEl.className =
       "inline-block px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300";
   } else {
@@ -538,11 +677,15 @@ function startFinishCountdown() {
 
 function resetToWelcomeScreen() {
   clearInterval(state.finishTimer);
+  cancelPriorityTimer();
+  closePriorityTimeoutModal();
   state.rawCpf = "";
   state.patientData = { name: "", cpf: "" };
   state.currentStep = 0;
   state.serviceType = "";
-  state.priorityLevel = "CONVENCIONAL";
+  state.urgencyLevel = "";
+  state.legalPriority = "CONVENCIONAL";
+  state.selectedSpecialty = "Clínica Geral";
   updateKeypadDisplay();
   setCpfLookupStatus("");
   document.getElementById("confirm-patient-name").innerText = "";
