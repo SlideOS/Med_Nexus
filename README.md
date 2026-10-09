@@ -1,4 +1,4 @@
-<<div align="center">
+<div align="center">
 
   <img src="assets/logo/logo2.png" alt="Nexus Logo" width="300" />
 
