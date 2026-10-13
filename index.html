@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full select-none">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Med Nexus</title>
+    <link rel="shortcut icon" href="assets/logo/logo2.png" type="image/x-icon">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/app.js"></script>
+</head>
+<body id="kiosk-body" class="h-full bg-slate-100 text-slate-800 flex flex-col justify-between overflow-hidden relative">
+
+    <img id="welcome-brandmark" src="assets/logo/logo2.png" alt="Logotipo do Med Nexus" class="welcome-brandmark" onerror="this.style.display='none'">
+
+    <main id="kiosk-main" class="flex-1 relative flex flex-col justify-center p-4 sm:p-8 max-w-6xl mx-auto w-full min-h-0 overflow-hidden">
+
+        <!-- Stepper de 4 Etapas -->
+        <div id="wizard-stepper" class="wizard-stepper hidden" aria-label="Etapas do atendimento">
+            <div id="step-node-1" class="stepper-stop stepper-stop-1"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="stepTriageLabel">Triagem</span></div>
+            <div id="step-connector-1" class="stepper-connector stepper-connector-1"></div>
+            <div id="step-node-2" class="stepper-stop stepper-stop-2"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step1Label">Identificação</span></div>
+            <div id="step-connector-2" class="stepper-connector stepper-connector-2"></div>
+            <div id="step-node-3" class="stepper-stop stepper-stop-3"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step4Label">Prioridade</span></div>
+            <div id="step-connector-3" class="stepper-connector stepper-connector-3"></div>
+            <div id="step-node-4" class="stepper-stop stepper-stop-4"><span class="stepper-dot"></span><span class="stepper-label" data-i18n="step3Label">Confirmação</span></div>
+        </div>
+
+        <section id="screen-ai-loading" class="hidden ai-loading-screen" role="status" aria-live="polite" aria-atomic="true">
+            <div class="ai-loading-mark" aria-hidden="true">
+                <i data-lucide="brain-circuit" class="ai-loading-brain"></i>
+                <i data-lucide="loader-circle" class="ai-loading-spinner"></i>
+            </div>
+            <p class="ai-loading-kicker" data-i18n="loadingLabel">Assistente de IA</p>
+            <h2 id="ai-loading-title" data-i18n="loadingTitle">Preparando seu atendimento</h2>
+            <p id="ai-loading-description" class="ai-loading-description"></p>
+            <div class="ai-loading-track" aria-hidden="true"><span></span></div>
+        </section>
+
+        <!-- TELA 0: BOAS-VINDAS -->
+        <section id="screen-welcome" class="relative flex-1 flex flex-col items-center justify-center text-center space-y-8 my-auto py-6">
+            <div class="max-w-2xl">
+                <h2 class="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight hc-text">
+                    <span data-i18n="welcomeTitle1">Atendimento automatizado</span> 
+                    <span class="text-health-600 hc-accent">alimentado por IA</span>
+                </h2>
+            </div>
+
+            <button onclick="startWizard()" class="pulse-kiosk-btn start-attendance-btn bg-health-600 hover:bg-health-700 text-white rounded-3xl text-2xl sm:text-3xl font-black shadow-2xl transition-all active:scale-95 border-4 border-emerald-300 hc-btn-primary">Começar atendimento</button>
+
+            <section class="welcome-sector-map" aria-labelledby="welcome-sector-map-title">
+                <div class="welcome-sector-map-heading">
+                    <h3 id="welcome-sector-map-title">Mapa dos setores</h3>
+                    <span>Hospital</span>
+                </div>
+                <div class="sector-map-grid">
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>Térreo</span>
+                        <strong>Pronto atendimento e triagem</strong>
+                        <small>Recepção A · Raio-X</small>
+                    </div>
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>1º andar</span>
+                        <strong>Consultórios e exames</strong>
+                        <small>Recepção B · Laboratório</small>
+                    </div>
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>2º andar</span>
+                        <strong>Internação e maternidade</strong>
+                        <small>Enfermaria · UTI</small>
+                    </div>
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>Anexo B</span>
+                        <strong>Administração e ouvidoria</strong>
+                        <small>Autorizações · Convênios</small>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- ETAPA: IDENTIFICAÇÃO DO PACIENTE (CPF) -->
+        <section id="step-1" class="hidden space-y-6">
+            <div class="text-center space-y-1">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight hc-text" data-i18n="step1Title">
+                    Como deseja se identificar?
+                </h2>
+                <p class="text-slate-500 font-medium text-sm hc-text" data-i18n="step1Sub">
+                    Digite seu CPF ou aproxime o QR Code do seu agendamento no leitor abaixo:
+                </p>
+            </div>
+
+            <div id="view-cpf-keypad" class="flex w-full max-w-lg mx-auto flex-col gap-3 items-center">
+                <div class="w-full">
+                    <div class="bg-white p-5 rounded-3xl border-2 border-health-500 shadow-md space-y-3 hc-card">
+                        <label class="block text-sm font-bold text-slate-700 hc-text" data-i18n="cpfLabel">Número do CPF</label>
+                        <input type="text" id="kiosk-id-input" readonly placeholder="000.000.000-00" class="w-full text-center text-2xl sm:text-3xl font-black font-mono tracking-normal text-hospblue-900 bg-health-50/50 border-2 border-slate-300 rounded-2xl py-4 focus:outline-none hc-text">
+                        <p class="text-sm text-slate-600 text-center hc-text" data-i18n="cpfHelp">Digite apenas os 11 números do documento.
+                            <br>(Nenhum dado é realmente coletado)
+                        </p>
+                        <p id="cpf-lookup-status" class="hidden text-sm font-semibold text-center" role="status" aria-live="polite"></p>
+                    </div>
+                </div>
+
+                <div class="calculator-keypad w-full bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-lg hc-card">
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button onclick="pressKey('1')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">1</button>
+                        <button onclick="pressKey('2')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">2</button>
+                        <button onclick="pressKey('3')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">3</button>
+
+                        <button onclick="pressKey('4')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">4</button>
+                        <button onclick="pressKey('5')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">5</button>
+                        <button onclick="pressKey('6')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">6</button>
+
+                        <button onclick="pressKey('7')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">7</button>
+                        <button onclick="pressKey('8')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">8</button>
+                        <button onclick="pressKey('9')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">9</button>
+
+                        <button onclick="pressKey('CLEAR')" class="keypad-action-btn bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-xs py-3.5 rounded-2xl transition-all hc-btn-secondary" data-i18n="btnLimpar">Limpar</button>
+                        <button onclick="pressKey('0')" class="keypad-btn bg-health-50 hover:bg-health-100 active:bg-health-600 active:text-white border border-health-200 text-slate-800 font-black text-2xl py-3 rounded-2xl transition-all hc-btn-secondary">0</button>
+                        <button onclick="pressKey('BACKSPACE')" class="keypad-action-btn bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs py-3.5 rounded-2xl transition-all flex items-center justify-center hc-btn-secondary">
+                            <i data-lucide="delete" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <button onclick="confirmPatientIdentification()" class="calculator-confirm-button w-full mt-4 bg-health-600 hover:bg-health-700 text-white font-black py-5 rounded-2xl text-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 hc-btn-primary">
+                        <span data-i18n="btnConfirmID">AVANÇAR COM ESTE CPF</span>
+                        <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODAL DE ATENDIMENTO DE URGÊNCIA -->
+        <div id="modal-priority-timeout" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4" role="alertdialog" aria-live="assertive" aria-labelledby="priority-timeout-title">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border-2 border-amber-300 text-center hc-card">
+                <div class="mx-auto p-4 bg-amber-100 text-amber-700 rounded-full w-fit">
+                    <i data-lucide="bell-ring" class="w-10 h-10"></i>
+                </div>
+                <h3 id="priority-timeout-title" class="text-2xl font-black text-slate-800 hc-text">Um atendente está a caminho</h3>
+                <p id="priority-timeout-desc" class="text-slate-600 font-medium hc-text">Aguarde neste local: um atendente virá até você.</p>
+                <div class="text-xs text-slate-500 font-semibold flex items-center justify-center gap-2 hc-text pt-1" role="timer">
+                    <i data-lucide="timer" class="w-4 h-4 text-amber-600"></i>
+                    <span><span data-i18n="resetCountdown">Reiniciando em</span> <strong id="attendant-countdown" class="text-amber-700 font-bold text-sm hc-accent">15</strong> <span data-i18n="seconds">segundos...</span></span>
+                </div>
+                <button type="button" onclick="resetToWelcomeScreen()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-2xl text-sm transition-all active:scale-95 flex items-center justify-center gap-2 hc-btn-secondary">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Voltar ao início</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ETAPA: CONFIRMAÇÃO DO PACIENTE E ESPECIALIDADE -->
+        <section id="step-3" class="hidden space-y-6">
+            <div class="text-center space-y-1">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight hc-text" data-i18n="step3Title">
+                    Confirme seus dados e escolha a Especialidade
+                </h2>
+                <p class="text-slate-500 text-sm hc-text" data-i18n="step3Sub">Localizamos os seguintes dados em nosso sistema:</p>
+            </div>
+
+            <div class="max-w-4xl mx-auto space-y-6">
+                <div class="bg-health-50 border-2 border-health-300 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm hc-card">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-health-600 text-white flex items-center justify-center text-xl font-black shadow-md flex-shrink-0">
+                            <i data-lucide="user-check" class="w-7 h-7"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-black text-health-700 uppercase tracking-wider block" data-i18n="foundPatient">Paciente Cadastrado</span>
+                            <h3 id="confirm-patient-name" class="text-xl font-extrabold text-slate-800 hc-text"></h3>
+                            <p class="text-xs text-slate-500 font-mono mt-0.5">CPF: <span id="confirm-patient-cpf"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="block text-sm font-bold text-slate-700 hc-text" data-i18n="selectSpecLabel">Selecione o Setor / Especialidade Desejada:</label>
+                    <div id="specialties-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3.5"></div>
+                </div>
+            </div>
+            <div class="wizard-step-actions">
+                <button type="button" onclick="goToPreviousStep()" class="wizard-back-button utility-control">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i><span>Voltar</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ETAPA: TRIAGEM / NÍVEL DE DOR -->
+        <section id="step-4" class="hidden space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight hc-text" data-i18n="step4Title">
+                    Qual é o nível da sua dor agora?
+                </h2>
+                <p class="text-slate-500 text-sm max-w-xl mx-auto hc-text" data-i18n="step4Sub">
+                    Selecione a opção que melhor descreve como você está:
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 max-w-3xl mx-auto pt-2">
+                <button onclick="selectPriority('URGENT')" class="hc-card bg-white hover:bg-rose-50 border-2 border-slate-200 hover:border-rose-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-rose-100 text-rose-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="activity" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 hc-text" data-i18n="triageUrg">Dor extrema ou muito forte</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="triageUrgDesc">Dor insuportável, dor no peito, falta de ar intensa, sangramento ativo ou queimaduras severas. Um atendente virá até você.</p>
+                    </div>
+                </button>
+                <button onclick="selectPriority('MODERATE')" class="hc-card bg-white hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-amber-100 text-amber-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="thermometer" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 hc-text" data-i18n="triageMod">Dor moderada, mas constante</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="triageModDesc">Não é tão forte, mas não passa: febre alta, enxaqueca, mal-estar persistente, pequenas fraturas.</p>
+                    </div>
+                </button>
+                <button onclick="selectPriority('MILD')" class="hc-card bg-white hover:bg-emerald-50 border-2 border-slate-200 hover:border-emerald-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-emerald-100 text-emerald-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="smile" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 hc-text" data-i18n="triageMild">Dor leve ou desconforto comum</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="triageMildDesc">Dor de cabeça leve, gripe, dor muscular, curativos ou renovação de receita.</p>
+                    </div>
+                </button>
+
+                <div class="hc-card bg-white border-2 border-slate-200 hover:border-hospblue-500 rounded-3xl p-5 shadow-sm transition-all">
+                    <button type="button" onclick="toggleExamOptions()" id="btn-toggle-exams" class="w-full text-left flex items-start justify-between gap-4 group focus:outline-none" aria-expanded="false" aria-controls="exam-derivatives-wrapper">
+                        <div class="flex items-start gap-4">
+                            <div class="p-3 bg-hospblue-100 text-hospblue-700 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
+                                <i data-lucide="flask-conical" class="w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="text-lg font-black text-slate-800 hc-text" data-i18n="examOptionTitle">Exames e Procedimentos Diagnósticos</h3>
+                                    <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-hospblue-100 text-hospblue-800 border border-hospblue-200">Sem dor</span>
+                                </div>
+                                <p class="text-xs text-slate-500 hc-text mt-0.5" data-i18n="examOptionDesc">Coleta de sangue, exames laboratoriais, raio-x, tomografia ou retirada de laudos.</p>
+                            </div>
+                        </div>
+                        <div class="p-2.5 text-hospblue-600 rounded-2xl bg-hospblue-50 group-hover:bg-hospblue-100 transition-colors flex-shrink-0 self-center flex items-center gap-1.5 font-bold text-xs">
+                            <span class="hidden sm:inline" id="exam-toggle-label">Ver opções</span>
+                            <i id="exam-toggle-chevron" data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200"></i>
+                        </div>
+                    </button>
+
+                    <div id="exam-derivatives-wrapper" class="hidden mt-4 pt-4 border-t border-slate-100 space-y-3">
+                        <p class="text-xs font-bold text-slate-600 hc-text">Selecione o tipo de exame desejado:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button type="button" onclick="selectExamCategory('LAB_SANGUE')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-hospblue-100 text-hospblue-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="flask-conical" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examLabTitle">Exames Laboratoriais</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examLabDesc">Sangue, urina, fezes e testes clínicos.</p>
+                                </div>
+                            </button>
+                            <button type="button" onclick="selectExamCategory('IMAGEM')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="scan" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examImgTitle">Exames de Imagem</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examImgDesc">Raio-X, tomografia, ressonância.</p>
+                                </div>
+                            </button>
+                            <button type="button" onclick="selectExamCategory('CARDIO')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-rose-100 text-rose-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="heart-pulse" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examCardioTitle">Exames Cardiológicos</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examCardioDesc">ECG, holter, MAPA.</p>
+                                </div>
+                            </button>
+                            <button type="button" onclick="selectExamCategory('RETIRADA')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examRetiradaTitle">Retirada de Laudos</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examRetiradaDesc">Imprimir ou retirar resultados.</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p id="priority-timer-note" class="text-xs text-slate-500 text-center font-medium hc-text" role="timer">
+                <span data-i18n="priorityTimerNote">Responda em</span>
+                <span id="priority-countdown">30</span>s
+                <span data-i18n="priorityTimerNoteEnd">ou um atendente irá até você.</span>
+            </p>
+        </section>
+
+        <!-- ETAPA: PRIORIDADE POR LEI -->
+        <section id="step-6" class="hidden space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight hc-text" data-i18n="legalTitle">
+                    Você possui direito a Atendimento Prioritário?
+                </h2>
+                <p class="text-slate-500 text-sm max-w-xl mx-auto hc-text" data-i18n="legalSub">
+                    Selecione uma das opções prioritárias garantidas pela legislação vigente:
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto pt-2">
+                <button onclick="selectLegalPriority('CONVENCIONAL')" class="hc-card bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-400 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95 col-span-1 sm:col-span-2 lg:col-span-3">
+                    <div class="p-3 bg-slate-100 text-slate-600 rounded-2xl group-hover:bg-slate-200 transition-colors">
+                        <i data-lucide="users" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 hc-text" data-i18n="prioGeneral">Atendimento Geral / Convencional</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="prioGeneralDesc">Não me enquadro em categorias de prioridade legal.</p>
+                    </div>
+                </button>
+                <button onclick="selectLegalPriority('IDOSO')" class="hc-card bg-white hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-amber-100 text-amber-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="heart" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 hc-text" data-i18n="prioElderly">Idoso (60+ anos)</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="prioElderlyDesc">Prioridade especial para 80+ anos.</p>
+                    </div>
+                </button>
+                <button onclick="selectLegalPriority('GESTANTE')" class="hc-card bg-white hover:bg-pink-50 border-2 border-slate-200 hover:border-pink-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-pink-100 text-pink-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="baby" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 hc-text" data-i18n="prioPregnant">Gestante / Lactante</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="prioPregnantDesc">Com bebês de colo ou gestantes.</p>
+                    </div>
+                </button>
+                <button onclick="selectLegalPriority('PCD')" class="hc-card bg-white hover:bg-indigo-50 border-2 border-slate-200 hover:border-indigo-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-indigo-100 text-indigo-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="accessibility" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 hc-text" data-i18n="prioPCD">Pessoa com Deficiência</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="prioPCDDesc">Mobilidade reduzida ou limitações PCD.</p>
+                    </div>
+                </button>
+                <button onclick="selectLegalPriority('AUTISMO')" class="hc-card bg-white hover:bg-health-50 border-2 border-slate-200 hover:border-health-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-health-100 text-health-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="puzzle" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 hc-text" data-i18n="prioTEA">Espectro Autista (TEA)</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="prioTEADesc">Direito garantido por lei prioritária.</p>
+                    </div>
+                </button>
+                <button onclick="selectLegalPriority('OUTROS')" class="hc-card bg-white hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-95">
+                    <div class="p-3 bg-hospblue-100 text-hospblue-700 rounded-2xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="shield-alert" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 hc-text" data-i18n="prioOther">Outras Prioridades</h3>
+                        <p class="text-xs text-slate-500 hc-text" data-i18n="prioOtherDesc">Doadores de sangue, obesidade severa, etc.</p>
+                    </div>
+                </button>
+            </div>
+            <div class="wizard-step-actions">
+                <button type="button" onclick="goToPreviousStep()" class="wizard-back-button utility-control">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i><span>Voltar</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ETAPA: GERAÇÃO DA SENHA -->
+        <section id="step-5" class="hidden space-y-6">
+            <div class="text-center space-y-2">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-health-100 text-health-600 rounded-full mb-1">
+                    <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight hc-text" data-i18n="ticketSuccess">
+                    Sua Senha foi Gerada com Sucesso!
+                </h2>
+                <p class="text-slate-600 font-medium text-sm hc-text" data-i18n="ticketSub">
+                    Retire o comprovante impresso na abertura do totem ou acompanhe no celular pelo QR Code:
+                </p>
+            </div>
+
+            <div class="max-w-md mx-auto relative pt-2">
+                <div class="bg-white border-2 border-slate-300 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 text-center animate-print-ticket relative overflow-hidden hc-card">
+                    <div class="absolute top-0 left-0 right-0 h-3 bg-slate-100 border-b border-dashed border-slate-300"></div>
+
+                    <div class="space-y-1">
+                        <div class="text-xs font-black tracking-widest text-hospblue-900 uppercase flex items-center justify-center gap-1.5">
+                            <i data-lucide="cross" class="w-4 h-4 text-health-600"></i>
+                            Hospital Nexus
+                        </div>
+                        <p class="text-[11px] text-slate-400" data-i18n="receiptSubtitle">Comprovante de Atendimento Digital</p>
+                    </div>
+
+                    <div class="py-4 border-y-2 border-dashed border-slate-200 space-y-1">
+                        <span class="text-xs font-extrabold text-slate-400 block uppercase tracking-widest" data-i18n="yourNumber">SUA SENHA</span>
+                        <div id="ticket-number-display" class="text-6xl font-black text-health-600 tracking-wider font-mono my-1 hc-accent">
+                            P-015
+                        </div>
+                        <span id="ticket-priority-badge" class="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                            ATENDIMENTO PRIORITÁRIO
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center text-left border-b border-slate-100 pb-4 text-xs">
+                        <div class="sm:col-span-8 space-y-1.5 text-slate-600">
+                            <div><span class="text-slate-400" data-i18n="lblPatient">Paciente:</span> <strong id="ticket-patient-name" class="text-slate-800"></strong></div>
+                            <div><span class="text-slate-400" data-i18n="lblSpec">Especialidade:</span> <span id="ticket-specialty-name" class="font-semibold text-slate-700">Clínica Geral</span></div>
+                            <div><span class="text-slate-400" data-i18n="lblLoc">Local:</span> <strong id="ticket-location-name" class="text-health-700">Recepção A • Térreo</strong></div>
+                            <div><span class="text-slate-400" data-i18n="lblWait">Tempo Estimado:</span> <span id="ticket-wait-time" class="font-bold text-slate-800">~ 12 min</span></div>
+                        </div>
+
+                        <div class="sm:col-span-4 flex flex-col items-center justify-center p-2 bg-slate-50 rounded-2xl border border-slate-200">
+                            <img src="assets/ui/qrcode_claro.png" alt="QR Code" width="1192" height="1342" class="block h-auto w-full max-w-[9rem] object-contain">
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-slate-400 italic" data-i18n="tvPrompt">
+                        tenha um bom atendimento!
+                    </p>
+                </div>
+            </div>
+
+            <div class="max-w-md mx-auto text-center space-y-3 pt-2">
+                <button onclick="simulatePrintButton()" id="btn-print-action" class="w-full bg-health-600 hover:bg-health-700 text-white font-extrabold py-4 px-6 rounded-2xl text-lg shadow-lg flex items-center justify-center gap-3 transition-all active:scale-95 hc-btn-primary">
+                    <i data-lucide="printer" class="w-6 h-6"></i>
+                    <span data-i18n="btnPrint">IMPRIMIR VIA EM PAPEL</span>
+                </button>
+
+                <div class="text-xs text-slate-500 font-semibold flex items-center justify-center gap-2">
+                    <i data-lucide="timer" class="w-4 h-4 text-health-600"></i>
+                    <span><span data-i18n="resetCountdown">Reiniciando em</span> <strong id="finish-countdown" class="text-health-700 font-bold text-sm">15</strong> <span data-i18n="seconds">segundos...</span></span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <aside id="utility-widget" class="utility-dock" aria-label="Acessibilidade e ações do atendimento">
+        <button onclick="toggleHighContrast()" id="btn-contrast" aria-label="Alternar alto contraste" title="Contraste" class="utility-control accessibility-dock-control">
+            <i data-lucide="eye" class="w-4 h-4"></i><span>Contraste</span>
+        </button>
+        <button onclick="toggleVoiceAssistant()" id="btn-voice-toggle" aria-label="Alternar leitura por voz" title="Leitura por voz" class="utility-control accessibility-dock-control">
+            <i data-lucide="volume-2" id="icon-voice" class="w-4 h-4"></i><span id="text-voice-state">Voz: OFF</span>
+        </button>
+    </aside>
+
+
+    <!-- ETAPA: SERVIÇO -->
+<section id="step-2" class="hidden space-y-6">
+    <div class="text-center space-y-1">
+        <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight hc-text" data-i18n="step2Title">
+            Qual o motivo do seu atendimento hoje?
+        </h2>
+        <p class="text-slate-500 font-medium text-sm hc-text" data-i18n="step2Sub">
+            Selecione uma das opções abaixo:
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto pt-2">
+        <button onclick="selectService('CONSULTA')" class="hc-card bg-white hover:bg-health-50 border-2 border-slate-200 hover:border-health-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-[0.98]">
+            <div class="p-4 bg-health-100 text-health-600 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
+                <i data-lucide="stethoscope" class="w-9 h-9"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg font-black text-slate-800 group-hover:text-health-700 hc-text">Consulta Médica</h3>
+                <p class="text-xs text-slate-500 leading-relaxed hc-text">Atendimento clínico geral ou especialidades.</p>
+            </div>
+        </button>
+
+        <button onclick="selectService('EXAMES')" class="hc-card bg-white hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-[0.98]">
+            <div class="p-4 bg-hospblue-100 text-hospblue-600 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
+                <i data-lucide="flask-conical" class="w-9 h-9"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg font-black text-slate-800 group-hover:text-hospblue-700 hc-text">Realizar Exames</h3>
+                <p class="text-xs text-slate-500 leading-relaxed hc-text">Coleta de sangue, imagem ou exames cardiológicos.</p>
+            </div>
+        </button>
+
+        <button onclick="selectService('LAUDOS')" class="hc-card bg-white hover:bg-mint-50 border-2 border-slate-200 hover:border-mint-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-[0.98]">
+            <div class="p-4 bg-mint-100 text-mint-600 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
+                <i data-lucide="file-text" class="w-9 h-9"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg font-black text-slate-800 group-hover:text-mint-700 hc-text">Retirada de Laudos</h3>
+                <p class="text-xs text-slate-500 leading-relaxed hc-text">Impressão de resultados prontos no balcão.</p>
+            </div>
+        </button>
+    </div>
+    <div class="wizard-step-actions">
+        <button type="button" onclick="goToPreviousStep()" class="wizard-back-button utility-control">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i><span>Voltar</span>
+        </button>
+    </div>
+</section>
+
+</body>
+</html>
