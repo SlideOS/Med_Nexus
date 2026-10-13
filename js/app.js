@@ -50,8 +50,10 @@ const state = {
     cpf: "",
   },
   selectedSpecialty: "Clínica Geral",
-  legalPriority: "CONVENCIONAL", // prioridade por lei (só no caminho leve)
-  urgencyLevel: "", // gravidade: "MILD" (leve) | "MODERATE" (intermediário) | "URGENT" (grave)
+  priorityLevel: "CONVENCIONAL",
+  legalPriority: "CONVENCIONAL",
+  urgencyLevel: "MILD",
+  examDetails: null,
   ticketCode: "",
   loadingToken: 0,
 
@@ -63,33 +65,29 @@ const state = {
   finishCountdownSeconds: 15,
   priorityTimer: null,
   priorityCountdownSeconds: 30,
-  attendantScreenTimer: null,
+  attendantTimer: null,
+  attendantCountdownSeconds: 15,
 };
 
-// Tempo (em segundos) para o paciente responder a pergunta de gravidade.
-// Se acabar, a equipe é avisada e o paciente vê que um atendente vai até o local.
-const PRIORITY_TIMEOUT_SECONDS = 30;
-// Quanto tempo o aviso "atendente a caminho" fica na tela antes do totem voltar ao início.
-const ATTENDANT_SCREEN_SECONDS = 60;
-
-// Ordem das etapas NA TELA -> id da seção no HTML (step-N).
-// 1: Triagem/nível de dor (step-4) · 2: CPF (step-1) · 3: Prioridade por lei (step-6)
-// 4: Serviço/motivo (step-2) · 5: Confirmação/especialidade (step-3) · 6: Ficha (step-5)
-// Assim não foi preciso renumerar os ids do HTML nem do CSS.
-const STEP_SECTIONS = { 1: 4, 2: 1, 3: 6, 4: 2, 5: 3, 6: 5 };
+// Etapa lógica (barra de progresso) -> <section id="step-N"> correspondente
+// 1 Triagem | 2 Identificação (CPF) | 3 Prioridade legal | 4 Serviço | 5 Confirmação | 6 Senha
 const TICKET_STEP = 6;
-
-// Nome do nível do meio (dor moderada, mas constante) que aparece na ficha.
-// Pode trocar por outro nome que fique antes de "urgência" (ex.: "Semiurgente").
+const STEP_SECTIONS = { 1: 4, 2: 1, 3: 6, 4: 2, 5: 3 };
+const PRIORITY_TIMEOUT_SECONDS = 30;
+const ATTENDANT_RESET_SECONDS = 15;
 const MODERATE_LEVEL_NAME = "Prioritário";
-
-// Nomes das prioridades por lei, usados na ficha
 const LEGAL_PRIORITY_LABELS = {
   IDOSO: "Idoso",
   GESTANTE: "Gestante / Lactante",
   PCD: "Pessoa com Deficiência",
   AUTISMO: "TEA",
   OUTROS: "Outras prioridades",
+};
+const EXAM_CATEGORIES = {
+  LAB_SANGUE: { name: "Exames Laboratoriais", location: "Laboratório • 1º andar", wait: "~ 5 min" },
+  IMAGEM: { name: "Exames de Imagem", location: "Raio-X • Térreo", wait: "~ 20 min" },
+  CARDIO: { name: "Exames Cardiológicos", location: "Cardiologia • 1º andar", wait: "~ 25 min" },
+  RETIRADA: { name: "Retirada de Laudos", location: "Recepção B • 1º andar", wait: "~ 5 min" },
 };
 
 // Dicionário de traduções
@@ -111,6 +109,7 @@ const i18nDict = {
     cpfLabel: "Número do CPF",
     cpfHelp: "Digite apenas os 11 números do documento.",
     cpfInvalid: "Digite os 11 números do CPF.",
+    cpfInvalidDigits: "CPF inválido. Confira os números e tente novamente.",
     cpfLoading: "Validando CPF e preparando atendimento...",
     loadingLabel: "Demonstração do assistente de IA",
     loadingTitle: "Preparando seu atendimento",
@@ -185,13 +184,23 @@ const i18nDict = {
     lblSpec: "Especialidade:",
     lblLoc: "Local:",
     lblWait: "Tempo Estimado:",
-    mobileTrack: "Acompanhar no Celular",
     tvPrompt: "Fique atento aos painéis de TV espalhados pela recepção.",
     btnPrint: "IMPRIMIR VIA EM PAPEL",
     resetCountdown: "Reiniciando em",
     seconds: "segundos...",
     statusReception: "Recepção: Fluxo Normal",
     ticketsCalled: "Senhas chamadas agora:",
+    examOptionTitle: "Exames e Procedimentos Diagnósticos",
+    examOptionDesc:
+      "Coleta de sangue, exames laboratoriais, raio-x, tomografia ou retirada de laudos.",
+    examLabTitle: "Exames Laboratoriais",
+    examLabDesc: "Sangue, urina, fezes e testes de análises clínicas.",
+    examImgTitle: "Exames de Imagem",
+    examImgDesc: "Raio-X, tomografia, ressonância e ultrassonografia.",
+    examCardioTitle: "Exames Cardiológicos",
+    examCardioDesc: "ECG, holter, MAPA e ecocardiograma.",
+    examRetiradaTitle: "Retirada de Laudos",
+    examRetiradaDesc: "Imprimir ou retirar resultados já prontos no balcão.",
   },
 };
 
@@ -223,6 +232,7 @@ async function startWizard() {
 }
 
 async function showAiLoading(nextStep, descriptionKey, onComplete = () => {}) {
+  clearPriorityTimer();
   const loadingToken = ++state.loadingToken;
   const main = document.getElementById("kiosk-main");
   const loadingScreen = document.getElementById("screen-ai-loading");
@@ -253,9 +263,8 @@ async function showAiLoading(nextStep, descriptionKey, onComplete = () => {}) {
 }
 
 function goToStep(stepNum) {
+  clearPriorityTimer();
   state.loadingToken += 1;
-  cancelPriorityTimer();
-  closePriorityTimeoutModal();
   state.currentStep = stepNum;
   document.getElementById("kiosk-main").scrollTop = 0;
   document.getElementById("wizard-stepper").classList.remove("has-content-underlay");
@@ -298,10 +307,8 @@ function goToStep(stepNum) {
   atualizarBlurEtapas();
 }
 
-// Só é possível voltar depois que o CPF foi informado (etapa 3 em diante, até antes da ficha).
-// Triagem (1) e CPF (2) não têm "Voltar".
 function goToPreviousStep() {
-  if (state.currentStep >= 3 && state.currentStep < TICKET_STEP) {
+  if (state.currentStep > 1) {
     goToStep(state.currentStep - 1);
   }
 }
@@ -445,7 +452,10 @@ function setCpfLookupStatus(message, isError = false) {
 
 async function confirmPatientIdentification() {
   if (!validarCpf(state.rawCpf)) {
-    setCpfLookupStatus(i18nDict.pt.cpfInvalid, true);
+    setCpfLookupStatus(
+      state.rawCpf.length < 11 ? i18nDict.pt.cpfInvalid : i18nDict.pt.cpfInvalidDigits,
+      true,
+    );
     playAudioTone(350, 0.12);
     return;
   }
@@ -474,6 +484,123 @@ async function selectService(type) {
   playAudioTone(700, 0.1);
   const completed = await showAiLoading(5, "loadingService");
   if (completed) speakText(i18nDict.pt.step3Title);
+}
+
+// ---------- Triagem (nível de dor) ----------
+async function selectPriority(level) {
+  state.urgencyLevel = level;
+  state.examDetails = null;
+  state.legalPriority = "CONVENCIONAL";
+
+  if (level === "URGENT") {
+    playAudioTone(350, 0.25);
+    showAttendantModal("severe");
+    return;
+  }
+
+  playAudioTone(700, 0.1);
+  const completed = await showAiLoading(2, "loadingStart");
+  if (completed) speakText(i18nDict.pt.step1Title);
+}
+
+function startPriorityTimer() {
+  clearPriorityTimer();
+  state.priorityCountdownSeconds = PRIORITY_TIMEOUT_SECONDS;
+  const el = document.getElementById("priority-countdown");
+  if (el) el.innerText = state.priorityCountdownSeconds;
+
+  state.priorityTimer = setInterval(() => {
+    state.priorityCountdownSeconds--;
+    if (el) el.innerText = Math.max(state.priorityCountdownSeconds, 0);
+    if (state.priorityCountdownSeconds <= 0) {
+      clearPriorityTimer();
+      showAttendantModal("timeout");
+    }
+  }, 1000);
+}
+
+function clearPriorityTimer() {
+  clearInterval(state.priorityTimer);
+  state.priorityTimer = null;
+}
+
+function showAttendantModal(reason) {
+  clearPriorityTimer();
+  state.loadingToken += 1;
+  const key = reason === "severe" ? "attendantDescSevere" : "attendantDescTimeout";
+  document.getElementById("priority-timeout-title").innerText = i18nDict.pt.attendantTitle;
+  document.getElementById("priority-timeout-desc").innerText = i18nDict.pt[key];
+  document.getElementById("modal-priority-timeout").classList.remove("hidden");
+  speakText(`${i18nDict.pt.attendantTitle}. ${i18nDict.pt[key]}`);
+
+  clearInterval(state.attendantTimer);
+  state.attendantCountdownSeconds = ATTENDANT_RESET_SECONDS;
+  const el = document.getElementById("attendant-countdown");
+  if (el) el.innerText = state.attendantCountdownSeconds;
+
+  state.attendantTimer = setInterval(() => {
+    state.attendantCountdownSeconds--;
+    if (el) el.innerText = Math.max(state.attendantCountdownSeconds, 0);
+    if (state.attendantCountdownSeconds <= 0) resetToWelcomeScreen();
+  }, 1000);
+}
+
+function hideAttendantModal() {
+  clearInterval(state.attendantTimer);
+  state.attendantTimer = null;
+  document.getElementById("modal-priority-timeout")?.classList.add("hidden");
+}
+
+// ---------- Exames (caminho "sem dor") ----------
+function toggleExamOptions() {
+  const wrapper = document.getElementById("exam-derivatives-wrapper");
+  const open = wrapper.classList.contains("hidden");
+  setExamOptionsOpen(open);
+  playAudioTone(600, 0.05);
+}
+
+function collapseExamOptions() {
+  setExamOptionsOpen(false);
+}
+
+function setExamOptionsOpen(open) {
+  const wrapper = document.getElementById("exam-derivatives-wrapper");
+  const toggle = document.getElementById("btn-toggle-exams");
+  const label = document.getElementById("exam-toggle-label");
+  const chevron = document.getElementById("exam-toggle-chevron");
+  if (!wrapper) return;
+  wrapper.classList.toggle("hidden", !open);
+  if (toggle) toggle.setAttribute("aria-expanded", String(open));
+  if (label) label.innerText = open ? "Ocultar" : "Ver opções";
+  if (chevron) chevron.classList.toggle("rotate-180", open);
+}
+
+async function selectExamCategory(category) {
+  const exam = EXAM_CATEGORIES[category];
+  if (!exam) return;
+  state.urgencyLevel = "MILD";
+  state.legalPriority = "CONVENCIONAL";
+  state.examDetails = { location: exam.location, wait: exam.wait };
+  state.selectedSpecialty = exam.name;
+  playAudioTone(700, 0.1);
+  const completed = await showAiLoading(2, "loadingStart");
+  if (completed) speakText(i18nDict.pt.step1Title);
+}
+
+// ---------- Prioridade por lei ----------
+async function selectLegalPriority(type) {
+  state.legalPriority = type;
+  state.priorityLevel = type;
+  playAudioTone(700, 0.1);
+
+  // Exames já definem o setor: pula "Serviço" e "Confirmação" e vai direto à senha
+  if (state.examDetails) {
+    const done = await showAiLoading(TICKET_STEP, "loadingTicket", generateFinalTicket);
+    if (done) speakText(i18nDict.pt.ticketSuccess);
+    return;
+  }
+  const completed = await showAiLoading(4, "loadingService");
+  if (completed) speakText(i18nDict.pt.step2Title);
 }
 
 function renderSpecialties() {
@@ -508,118 +635,12 @@ async function selectSpecialty(spec) {
   if (completed) speakText(i18nDict.pt.ticketSuccess);
 }
 
-async function selectLegalPriority(priority) {
-  state.legalPriority = priority;
-  playAudioTone(700, 0.1);
-  const completed = await showAiLoading(4, "loadingService");
-  if (completed) speakText(i18nDict.pt.step2Title);
-}
-
-async function selectPriority(level) {
-  // level: "MILD" | "MODERATE" | "URGENT"
-  cancelPriorityTimer();
-  state.urgencyLevel = level;
-  playAudioTone(700, 0.1);
-
-  // Grave: não segue o fluxo, o atendente vem direto
-  if (level === "URGENT") {
-    callAttendant("CASO_GRAVE");
-    return;
-  }
-
-  // Intermediário: só identifica pelo CPF e recebe a ficha
-  if (level === "MODERATE") {
-    state.serviceType = "URGENCIA";
-    state.selectedSpecialty = "Pronto Atendimento";
-  }
-
-  // Leve: segue por todas as perguntas
-  const completed = await showAiLoading(2, "loadingStart");
-  if (completed) speakText(i18nDict.pt.step1Title);
-}
-
-// ---------- Timer da pergunta de prioridade ----------
-function startPriorityTimer() {
-  cancelPriorityTimer();
-  state.priorityCountdownSeconds = PRIORITY_TIMEOUT_SECONDS;
-  updatePriorityCountdown();
-
-  state.priorityTimer = setInterval(() => {
-    state.priorityCountdownSeconds--;
-    updatePriorityCountdown();
-
-    if (state.priorityCountdownSeconds <= 0) {
-      cancelPriorityTimer();
-      onPriorityTimeout();
-    }
-  }, 1000);
-}
-
-function cancelPriorityTimer() {
-  clearInterval(state.priorityTimer);
-  state.priorityTimer = null;
-}
-
-function updatePriorityCountdown() {
-  const el = document.getElementById("priority-countdown");
-  if (el) el.innerText = Math.max(state.priorityCountdownSeconds, 0);
-}
-
-function onPriorityTimeout() {
-  // Sem resposta em 30s: gravidade fica indefinida e o atendente vai até o local
-  state.urgencyLevel = "";
-  callAttendant("SEM_RESPOSTA");
-}
-
-function callAttendant(reason) {
-  cancelPriorityTimer();
-  const isSevere = reason === "CASO_GRAVE";
-
-  notifyStaff({
-    motivo: reason, // "CASO_GRAVE" | "SEM_RESPOSTA"
-    gravidade: state.urgencyLevel || "NAO_INFORMADA",
-    local: "Totem de autoatendimento",
-    horario: new Date().toISOString(),
-  });
-
-  const description = isSevere
-    ? i18nDict.pt.attendantDescSevere
-    : i18nDict.pt.attendantDescTimeout;
-  document.getElementById("priority-timeout-title").innerText =
-    i18nDict.pt.attendantTitle;
-  document.getElementById("priority-timeout-desc").innerText = description;
-  document.getElementById("modal-priority-timeout").classList.remove("hidden");
-
-  playAudioTone(isSevere ? 900 : 500, 0.4);
-  speakText(`${i18nDict.pt.attendantTitle}. ${description}`);
-  lucide.createIcons();
-
-  // O totem volta ao início sozinho depois de um tempo
-  clearTimeout(state.attendantScreenTimer);
-  state.attendantScreenTimer = setTimeout(
-    resetToWelcomeScreen,
-    ATTENDANT_SCREEN_SECONDS * 1000,
-  );
-}
-
-// Ponto de integração: troque pelo envio real (fetch/WebSocket) para o painel da recepção.
-function notifyStaff(payload) {
-  console.info("[Totem] Atendente solicitado:", payload);
-  window.dispatchEvent(
-    new CustomEvent("totem:atendente-solicitado", { detail: payload }),
-  );
-}
-
-function closePriorityTimeoutModal() {
-  clearTimeout(state.attendantScreenTimer);
-  const modal = document.getElementById("modal-priority-timeout");
-  if (modal) modal.classList.add("hidden");
-}
-
 function generateFinalTicket() {
-  // N = convencional · P = prioritária (dor moderada e constante, ou prioridade por lei)
-  const hasLegalPriority = state.legalPriority !== "CONVENCIONAL";
-  const isPriority = state.urgencyLevel === "MODERATE" || hasLegalPriority;
+  const isModerate = state.urgencyLevel === "MODERATE";
+  const hasLegalPriority =
+    Boolean(state.legalPriority) && state.legalPriority !== "CONVENCIONAL";
+  const isPriority = isModerate || hasLegalPriority;
+  const isExam = Boolean(state.examDetails);
   const prefix = isPriority ? "P" : "N";
 
   const randomNum = Math.floor(Math.random() * 80) + 10;
@@ -631,6 +652,16 @@ function generateFinalTicket() {
   document.getElementById("ticket-specialty-name").innerText =
     state.selectedSpecialty;
 
+  const locEl = document.getElementById("ticket-location-name");
+  const waitEl = document.getElementById("ticket-wait-time");
+  if (state.examDetails) {
+    if (locEl) locEl.innerText = state.examDetails.location;
+    if (waitEl) waitEl.innerText = state.examDetails.wait;
+  } else {
+    if (locEl) locEl.innerText = "Recepção A • Térreo";
+    if (waitEl) waitEl.innerText = "~ 12 min";
+  }
+
   const badgeEl = document.getElementById("ticket-priority-badge");
   if (isPriority) {
     badgeEl.innerText = hasLegalPriority
@@ -638,6 +669,10 @@ function generateFinalTicket() {
       : `ATENDIMENTO ${MODERATE_LEVEL_NAME.toUpperCase()}`;
     badgeEl.className =
       "inline-block px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300";
+  } else if (isExam) {
+    badgeEl.innerText = "ATENDIMENTO CONVENCIONAL (EXAMES)";
+    badgeEl.className =
+      "inline-block px-3 py-1 rounded-full text-xs font-black bg-hospblue-100 text-hospblue-800 border border-hospblue-300";
   } else {
     badgeEl.innerText = "ATENDIMENTO CONVENCIONAL";
     badgeEl.className =
@@ -649,13 +684,15 @@ function generateFinalTicket() {
 
 function simulatePrintButton() {
   const btn = document.getElementById("btn-print-action");
-  btn.innerHTML = `<i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i><span>IMPRIMINDO...</span>`;
+  btn.innerHTML = `<i data-lucide="loader-circle" class="w-6 h-6 animate-spin"></i><span>IMPRIMINDO...</span>`;
+  lucide.createIcons();
   playAudioTone(400, 0.4);
 
   setTimeout(() => {
     btn.innerHTML = `<i data-lucide="check" class="w-6 h-6 text-emerald-300"></i><span>SENHA IMPRESSA!</span>`;
-    btn.classList.remove("from-health-600", "to-hospblue-600");
+    btn.classList.remove("bg-health-600", "hover:bg-health-700");
     btn.classList.add("bg-slate-800");
+    lucide.createIcons();
   }, 1200);
 }
 
@@ -677,15 +714,20 @@ function startFinishCountdown() {
 
 function resetToWelcomeScreen() {
   clearInterval(state.finishTimer);
-  cancelPriorityTimer();
-  closePriorityTimeoutModal();
   state.rawCpf = "";
   state.patientData = { name: "", cpf: "" };
   state.currentStep = 0;
   state.serviceType = "";
-  state.urgencyLevel = "";
+  state.priorityLevel = "CONVENCIONAL";
   state.legalPriority = "CONVENCIONAL";
+  state.urgencyLevel = "MILD";
+  state.examDetails = null;
   state.selectedSpecialty = "Clínica Geral";
+  state.ticketCode = "";
+  state.loadingToken += 1;
+  clearPriorityTimer();
+  hideAttendantModal();
+  collapseExamOptions();
   updateKeypadDisplay();
   setCpfLookupStatus("");
   document.getElementById("confirm-patient-name").innerText = "";
@@ -715,13 +757,15 @@ function toggleVoiceAssistant() {
   const icon = document.getElementById("icon-voice");
   const label = document.getElementById("text-voice-state");
 
+  label.innerText = state.voiceEnabled ? i18nDict.pt.voiceOn : i18nDict.pt.voiceOff;
+  if (icon) {
+    icon.classList.toggle("text-emerald-600", state.voiceEnabled);
+    icon.classList.toggle("animate-pulse", state.voiceEnabled);
+  }
   if (state.voiceEnabled) {
-    label.innerText = i18nDict.pt.voiceOn;
-    icon.className = "w-3.5 h-3.5 text-emerald-400 animate-pulse";
     speakText("Leitor de áudio ativado.");
-  } else {
-    label.innerText = i18nDict.pt.voiceOff;
-    icon.className = "w-3.5 h-3.5 text-emerald-300";
+  } else if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
   }
 }
 
@@ -734,11 +778,14 @@ function speakText(text) {
 }
 
 // Retorno sonoro com a API de áudio da Web
+let sharedAudioCtx = null;
 function playAudioTone(freq, duration) {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!sharedAudioCtx) sharedAudioCtx = new AudioContextClass();
+    const ctx = sharedAudioCtx;
+    if (ctx.state === "suspended") ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
