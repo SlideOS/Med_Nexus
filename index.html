@@ -21,7 +21,7 @@
 </head>
 <body id="kiosk-body" class="h-full bg-slate-100 text-slate-800 flex flex-col justify-between overflow-hidden relative">
 
-    <img id="welcome-brandmark" src="assets/logo/logo2.png" alt="Logotipo do Med Nexus" class="welcome-brandmark">
+    <img id="welcome-brandmark" src="assets/logo/logo2.png" alt="Logotipo do Med Nexus" class="welcome-brandmark" onerror="this.style.display='none'">
 
     <main id="kiosk-main" class="flex-1 relative flex flex-col justify-center p-4 sm:p-8 max-w-6xl mx-auto w-full min-h-0 overflow-hidden">
 
@@ -61,6 +61,35 @@
 
             <!-- Botão principal de início -->
             <button onclick="startWizard()" class="pulse-kiosk-btn start-attendance-btn bg-health-600 hover:bg-health-700 text-white rounded-3xl text-2xl sm:text-3xl font-black shadow-2xl transition-all active:scale-95 border-4 border-emerald-300 hc-btn-primary">Começar atendimento</button>
+
+            <section class="welcome-sector-map" aria-labelledby="welcome-sector-map-title">
+                <div class="welcome-sector-map-heading">
+                    <h3 id="welcome-sector-map-title">Mapa dos setores</h3>
+                    <span>Hospital</span>
+                </div>
+                <div class="sector-map-grid">
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>Térreo</span>
+                        <strong>Pronto atendimento e triagem</strong>
+                        <small>Recepção A · Raio-X</small>
+                    </div>
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>1º andar</span>
+                        <strong>Consultórios e exames</strong>
+                        <small>Recepção B · Laboratório</small>
+                    </div>
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>2º andar</span>
+                        <strong>Internação e maternidade</strong>
+                        <small>Enfermaria · UTI</small>
+                    </div>
+                    <div class="sector-map-point">
+                        <span class="sector-map-floor"><i data-lucide="map-pin" aria-hidden="true"></i>Anexo B</span>
+                        <strong>Administração e ouvidoria</strong>
+                        <small>Autorizações · Convênios</small>
+                    </div>
+                </div>
+            </section>
         </section>
 
         <!-- ========================================== -->
@@ -134,20 +163,9 @@
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto pt-2">
-                <!-- Opção 1: pronto atendimento / urgência -->
-                <button onclick="selectService('URGENCIA')" class="hc-card bg-white hover:bg-rose-50/60 border-2 border-slate-200 hover:border-rose-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-98">
-                    <div class="p-4 bg-rose-100 text-rose-600 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
-                        <i data-lucide="siren" class="w-9 h-9"></i>
-                    </div>
-                    <div class="space-y-1">
-                        <h3 class="text-lg font-black text-slate-800 group-hover:text-rose-700 hc-text" data-i18n="serv1Title">Pronto Atendimento / Urgência</h3>
-                        <p class="text-xs text-slate-500 leading-relaxed hc-text" data-i18n="serv1Desc">Para sintomas recentes, dores fortes, febre ou situações de emergência sem agendamento.</p>
-                    </div>
-                </button>
-
-                <!-- Opção 2: consulta agendada -->
-                <button onclick="selectService('AGENDADO')" class="hc-card bg-white hover:bg-health-50 border-2 border-slate-200 hover:border-health-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-98">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto pt-2">
+                <!-- Opção 1: consulta agendada -->
+                <button onclick="selectService('AGENDADO')" class="hc-card bg-white hover:bg-health-50 border-2 border-slate-200 hover:border-health-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-[0.98]">
                     <div class="p-4 bg-health-100 text-health-600 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
                         <i data-lucide="calendar-check" class="w-9 h-9"></i>
                     </div>
@@ -157,8 +175,8 @@
                     </div>
                 </button>
 
-                <!-- Opção 3: retirada de exames -->
-                <button onclick="selectService('RESULTADOS')" class="hc-card bg-white hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-98">
+                <!-- Opção 2: retirada de exames -->
+                <button onclick="selectService('RESULTADOS')" class="hc-card bg-white hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-[0.98]">
                     <div class="p-4 bg-hospblue-100 text-hospblue-600 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
                         <i data-lucide="file-text" class="w-9 h-9"></i>
                     </div>
@@ -168,8 +186,8 @@
                     </div>
                 </button>
 
-                <!-- Opção 4: informações e orientação -->
-                <button onclick="selectService('INFORMACOES')" class="hc-card bg-white hover:bg-mint-50 border-2 border-slate-200 hover:border-mint-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-98">
+                <!-- Opção 3: informações e orientação -->
+                <button onclick="selectService('INFORMACOES')" class="hc-card bg-white hover:bg-mint-50 border-2 border-slate-200 hover:border-mint-500 rounded-3xl p-5 shadow-sm text-left flex items-start gap-4 transition-all group active:scale-[0.98]">
                     <div class="p-4 bg-mint-100 text-mint-600 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
                         <i data-lucide="compass" class="w-9 h-9"></i>
                     </div>
@@ -195,6 +213,14 @@
                 </div>
                 <h3 id="priority-timeout-title" class="text-2xl font-black text-slate-800 hc-text">Um atendente está a caminho</h3>
                 <p id="priority-timeout-desc" class="text-slate-600 font-medium hc-text">Aguarde neste local: um atendente virá até você.</p>
+                <div class="text-xs text-slate-500 font-semibold flex items-center justify-center gap-2 hc-text pt-1" role="timer">
+                    <i data-lucide="timer" class="w-4 h-4 text-amber-600"></i>
+                    <span><span data-i18n="resetCountdown">Reiniciando em</span> <strong id="attendant-countdown" class="text-amber-700 font-bold text-sm hc-accent">15</strong> <span data-i18n="seconds">segundos...</span></span>
+                </div>
+                <button type="button" onclick="resetToWelcomeScreen()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-2xl text-sm transition-all active:scale-95 flex items-center justify-center gap-2 hc-btn-secondary">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Voltar ao início</span>
+                </button>
             </div>
         </div>
 
@@ -281,6 +307,77 @@
                         <p class="text-xs text-slate-500 hc-text" data-i18n="triageMildDesc">Dor de cabeça leve, gripe, dor muscular, curativos ou renovação de receita.</p>
                     </div>
                 </button>
+                <!-- OPÇÃO ADICIONAL: EXAMES E DERIVADOS -->
+                <div class="hc-card bg-white border-2 border-slate-200 hover:border-hospblue-500 rounded-3xl p-5 shadow-sm transition-all">
+                    <button type="button" onclick="toggleExamOptions()" id="btn-toggle-exams" class="w-full text-left flex items-start justify-between gap-4 group focus:outline-none" aria-expanded="false" aria-controls="exam-derivatives-wrapper">
+                        <div class="flex items-start gap-4">
+                            <div class="p-3 bg-hospblue-100 text-hospblue-700 rounded-2xl group-hover:scale-105 transition-transform flex-shrink-0">
+                                <i data-lucide="flask-conical" class="w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="text-lg font-black text-slate-800 hc-text" data-i18n="examOptionTitle">Exames e Procedimentos Diagnósticos</h3>
+                                    <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-hospblue-100 text-hospblue-800 border border-hospblue-200">Sem dor</span>
+                                </div>
+                                <p class="text-xs text-slate-500 hc-text mt-0.5" data-i18n="examOptionDesc">Coleta de sangue, exames laboratoriais, raio-x, tomografia ou retirada de laudos.</p>
+                            </div>
+                        </div>
+                        <div class="p-2.5 text-hospblue-600 rounded-2xl bg-hospblue-50 group-hover:bg-hospblue-100 transition-colors flex-shrink-0 self-center flex items-center gap-1.5 font-bold text-xs">
+                            <span class="hidden sm:inline" id="exam-toggle-label">Ver opções</span>
+                            <i id="exam-toggle-chevron" data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200"></i>
+                        </div>
+                    </button>
+
+                    <!-- Derivados de exames -->
+                    <div id="exam-derivatives-wrapper" class="hidden mt-4 pt-4 border-t border-slate-100 space-y-3">
+                        <p class="text-xs font-bold text-slate-600 hc-text">Selecione o tipo de exame desejado:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Derivado 1: Laboratório / Sangue -->
+                            <button type="button" onclick="selectExamCategory('LAB_SANGUE')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-hospblue-100 text-hospblue-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="flask-conical" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examLabTitle">Exames Laboratoriais</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examLabDesc">Sangue, urina, fezes e testes de análises clínicas.</p>
+                                </div>
+                            </button>
+
+                            <!-- Derivado 2: Imagem -->
+                            <button type="button" onclick="selectExamCategory('IMAGEM')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="scan" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examImgTitle">Exames de Imagem</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examImgDesc">Raio-X, tomografia, ressonância e ultrassonografia.</p>
+                                </div>
+                            </button>
+
+                            <!-- Derivado 3: Cardiológicos -->
+                            <button type="button" onclick="selectExamCategory('CARDIO')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-rose-100 text-rose-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="heart-pulse" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examCardioTitle">Exames Cardiológicos</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examCardioDesc">ECG, holter, MAPA e ecocardiograma.</p>
+                                </div>
+                            </button>
+
+                            <!-- Derivado 4: Retirada de Laudos -->
+                            <button type="button" onclick="selectExamCategory('RETIRADA')" class="hc-card bg-slate-50 hover:bg-hospblue-50 border-2 border-slate-200 hover:border-hospblue-500 rounded-2xl p-4 text-left flex items-start gap-3 transition-all active:scale-95 group/item">
+                                <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl group-hover/item:scale-105 transition-transform flex-shrink-0">
+                                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-black text-slate-800 hc-text" data-i18n="examRetiradaTitle">Retirada de Laudos</h4>
+                                    <p class="text-[11px] text-slate-500 leading-snug hc-text mt-0.5" data-i18n="examRetiradaDesc">Imprimir ou retirar resultados já prontos.</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <p id="priority-timer-note" class="text-xs text-slate-500 text-center font-medium hc-text" role="timer">
@@ -426,15 +523,14 @@
                             <div><span class="text-slate-400" data-i18n="lblWait">Tempo Estimado:</span> <span id="ticket-wait-time" class="font-bold text-slate-800">~ 12 min</span></div>
                         </div>
 
-                        <!-- Simulação do QR Code para acompanhamento no celular -->
+                        <!-- QR Code para acompanhamento no celular -->
                         <div class="sm:col-span-4 flex flex-col items-center justify-center p-2 bg-slate-50 rounded-2xl border border-slate-200">
-                            <i data-lucide="qr-code" class="w-12 h-12 text-slate-800"></i>
-                            <span class="text-[9px] text-slate-500 font-bold mt-1 text-center" data-i18n="mobileTrack">Acompanhar no Celular</span>
+                            <img src="assets/ui/qrcode_claro.png" alt="QR Code para acompanhar pelo celular" width="1192" height="1342" class="block h-auto w-full max-w-[9rem] object-contain">
                         </div>
                     </div>
 
                     <p class="text-[11px] text-slate-400 italic" data-i18n="tvPrompt">
-                        Fique atento aos painéis de TV espalhados pela recepção.
+                        tenha um bom atendimento!
                     </p>
                 </div>
             </div>
