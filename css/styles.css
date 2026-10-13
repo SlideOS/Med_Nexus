@@ -7,6 +7,7 @@ body {
 
 #screen-welcome {
     background-image: radial-gradient(ellipse at 50% 45%, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.12) 48%, transparent 82%);
+    padding-bottom: 10rem;
 }
 .welcome-brandmark {
     position: fixed;
@@ -16,6 +17,138 @@ body {
     width: 5rem;
     height: 5rem;
     object-fit: contain;
+}
+.welcome-sector-map {
+    position: absolute;
+    z-index: 2;
+    bottom: max(5.25rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+    left: 50%;
+    width: min(calc(100% - 2rem), 64rem);
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    text-align: left;
+    transform: translateX(-50%);
+}
+.welcome-sector-map-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+.welcome-sector-map-heading h3 {
+    margin: 0;
+    color: #334155;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.welcome-sector-map-heading span {
+    color: #64748b;
+    font-size: 0.6875rem;
+    font-weight: 700;
+}
+.sector-map-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.sector-map-point {
+    min-width: 0;
+    padding: 0.375rem 0.75rem;
+    border-right: 1px solid #dbe4e8;
+}
+.sector-map-point:first-child {
+    padding-left: 0;
+}
+.sector-map-point:last-child {
+    padding-right: 0;
+    border-right: 0;
+}
+.sector-map-floor {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.2rem;
+    color: #047857;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.sector-map-floor svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex: 0 0 auto;
+}
+.sector-map-point strong,
+.sector-map-point small {
+    display: block;
+    overflow-wrap: anywhere;
+}
+.sector-map-point strong {
+    color: #1e293b;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+.sector-map-point small {
+    margin-top: 0.15rem;
+    color: #64748b;
+    font-size: 0.6875rem;
+}
+@media (max-width: 640px) {
+    #screen-welcome {
+        padding-bottom: 13rem;
+    }
+    .welcome-sector-map {
+        bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem));
+        width: calc(100% - 1.25rem);
+        padding: 0.625rem 0.75rem;
+    }
+    .sector-map-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sector-map-point {
+        padding: 0.375rem 0.5rem;
+    }
+    .sector-map-point:nth-child(odd) {
+        padding-left: 0;
+        border-right: 1px solid #dbe4e8;
+    }
+    .sector-map-point:nth-child(even) {
+        padding-right: 0;
+        border-right: 0;
+    }
+    .sector-map-point:nth-child(n + 3) {
+        margin-top: 0.35rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #dbe4e8;
+    }
+}
+@media (max-height: 700px) {
+    #screen-welcome {
+        padding-bottom: 13rem;
+    }
+    .welcome-sector-map {
+        bottom: max(4.75rem, calc(env(safe-area-inset-bottom) + 4rem));
+    }
+}
+body.high-contrast .welcome-sector-map {
+    border-color: #facc15;
+    background: rgba(17, 17, 17, 0.96);
+}
+body.high-contrast .welcome-sector-map-heading h3,
+body.high-contrast .welcome-sector-map-heading span,
+body.high-contrast .sector-map-point strong,
+body.high-contrast .sector-map-point small {
+    color: #ffffff;
+}
+body.high-contrast .sector-map-point {
+    border-color: #ffffff;
+}
+body.high-contrast .sector-map-floor {
+    color: #facc15;
 }
 
 /* High Contrast Mode Overrides */
@@ -69,14 +202,9 @@ body.high-contrast .hc-accent {
 #kiosk-main {
     padding-bottom: max(6rem, calc(env(safe-area-inset-bottom) + 5rem));
     scroll-padding-block: 1rem;
-    overscroll-behavior: none;
-}
-@media (max-width: 768px), (max-height: 700px) {
-    #kiosk-main {
-        overflow-x: hidden;
-        overflow-y: auto;
-        overscroll-behavior-y: contain;
-    }
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
 }
 
 .wizard-stepper.hidden {
@@ -492,20 +620,20 @@ body.high-contrast .ai-loading-track span {
 #step-6:not(.hidden),
 #step-4:not(.hidden),
 #step-5:not(.hidden) {
-    animation: softScreenEntry 480ms cubic-bezier(0.22, 0.8, 0.28, 1.12) both;
+    animation: softScreenEntry 480ms cubic-bezier(0.22, 0.8, 0.28, 1.12) backwards;
 }
 #screen-welcome > div {
-    animation: softOptionEntry 520ms cubic-bezier(0.22, 0.8, 0.28, 1.12) both;
+    animation: softOptionEntry 520ms cubic-bezier(0.22, 0.8, 0.28, 1.12) backwards;
 }
 #screen-welcome > button {
-    animation: softOptionEntry 560ms 80ms cubic-bezier(0.22, 0.8, 0.28, 1.12) both;
+    animation: softOptionEntry 560ms 80ms cubic-bezier(0.22, 0.8, 0.28, 1.12) backwards;
 }
 #step-2 > div:nth-child(2) > button,
 #step-6 > div:nth-child(2) > button,
 #step-4 > div:nth-child(2) > button,
 #step-3 #specialties-grid > button,
 #modal-urgency-triage .space-y-3 > button {
-    animation: softOptionEntry 440ms cubic-bezier(0.22, 0.8, 0.28, 1.12) both;
+    animation: softOptionEntry 440ms cubic-bezier(0.22, 0.8, 0.28, 1.12) backwards;
 }
 #step-2 > div:nth-child(2) > button:nth-child(2),
 #step-6 > div:nth-child(2) > button:nth-child(2),
@@ -521,6 +649,7 @@ body.high-contrast .ai-loading-track span {
 #modal-urgency-triage .space-y-3 > button:nth-child(3) {
     animation-delay: 90ms;
 }
+
 #step-2 > div:nth-child(2) > button:nth-child(4),
 #step-6 > div:nth-child(2) > button:nth-child(4),
 #step-4 > div:nth-child(2) > button:nth-child(4),
@@ -538,7 +667,7 @@ body.high-contrast .ai-loading-track span {
     animation-delay: 225ms;
 }
 .stepper-stop.is-current .stepper-dot {
-    animation: softDotEntry 420ms cubic-bezier(0.22, 0.8, 0.28, 1.2) both;
+    animation: softDotEntry 420ms cubic-bezier(0.22, 0.8, 0.28, 1.2) backwards;
 }
 #step-2 > div:nth-child(2) > button,
 #step-3 #specialties-grid > button,
