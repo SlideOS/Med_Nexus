@@ -15,3 +15,21 @@ Um sistema intuitivo alimentado por IA (DeepSeek) que tem como objetivo servir c
 
 ### License 
 Esse projeto é licenciado pela [MIT LICENSE](LICENSE).
+
+### Participantes
+
+Ketylen Victória 
+José Arthur 
+Karen Mariany
+Maria Daniela
+Emanuela Aparecida 
+Franciely Farias
+Laisa Da Silva
+Ana Clara 
+Sabrina Maria 
+Vitória Kauane
+
+#### Desenvolvedores:
+
+DAVIDVS-PR1MVS 
+DeByel
