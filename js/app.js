@@ -634,6 +634,11 @@ function generateFinalTicket() {
     }
   }
 
+  const qrImg = document.getElementById("ticket-qrcode-img");
+  if (qrImg) {
+    qrImg.src = state.isHighContrast ? "assets/ui/qrcode_escuro.png" : "assets/ui/qrcode_claro.png";
+  }
+
   playAudioTone(1000, 0.3);
 }
 
@@ -702,6 +707,12 @@ function resetToWelcomeScreen() {
 function toggleHighContrast() {
   state.isHighContrast = !state.isHighContrast;
   document.getElementById("kiosk-body")?.classList.toggle("high-contrast", state.isHighContrast);
+  
+  const qrImg = document.getElementById("ticket-qrcode-img");
+  if (qrImg) {
+    qrImg.src = state.isHighContrast ? "assets/ui/qrcode_escuro.png" : "assets/ui/qrcode_claro.png";
+  }
+
   playAudioTone(500, 0.1);
 }
 
