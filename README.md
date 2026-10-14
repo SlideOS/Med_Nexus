@@ -42,6 +42,7 @@ Vitória Kauane
 
 #### Desenvolvedores:
 
-<a href="https://github.com/DAVIDVS-PR1MVS"<DAVIDVS>
+<a href="https://github.com/DAVIDVS-PR1MVS">DAVIDVS>
+</a>
 
 DeByel
