@@ -19,14 +19,23 @@ Esse projeto é licenciado pela [MIT LICENSE](LICENSE).
 ### Participantes
 
 Ketylen Victória 
+
 José Arthur 
+
 Karen Mariany
+
 Maria Daniela
+
 Emanuela Aparecida 
+
 Franciely Farias
+
 Laisa Da Silva
+
 Ana Clara 
+
 Sabrina Maria 
+
 Vitória Kauane
 
 #### Desenvolvedores:
