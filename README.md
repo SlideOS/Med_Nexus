@@ -12,7 +12,6 @@ Um sistema intuitivo alimentado por IA (DeepSeek) que tem como objetivo servir c
 
 * `Trabalho Escolar`
 
-EREM Professor Manoel Edmundo 
 
 
 ### License 
